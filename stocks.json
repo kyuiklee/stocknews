@@ -9,7 +9,7 @@
     {"market": "KR", "name": "OCI홀딩스", "code": "010060"},
     {"market": "KR", "name": "씨에스윈드", "code": "112610"},
     {"market": "KR", "name": "삼성SDI", "code": "006400"},
-    {"market": "KR", "name": "NAVER", "code": "035420", "alias": ["네이버"]},
+    {"market": "KR", "name": "NAVER", "code": "035420", "alias": ["네이버"], "q_ko": "(\"NAVER\" OR \"네이버\") (주가 OR 실적 OR 목표가 OR 주식 OR 증권)"},
     {"market": "US", "name": "인텔", "code": "INTC", "en": "Intel"},
     {"market": "US", "name": "서클", "code": "CRCL", "en": "Circle Internet", "alias_en": ["Circle"], "q_ko": "\"서클\" (CRCL OR USDC OR 스테이블코인)"},
     {"market": "US", "name": "유나이티드헬스", "code": "UNH", "en": "UnitedHealth"},

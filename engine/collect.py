@@ -289,6 +289,8 @@ def google(query, lang, src, must=None):
             title = clean(it.findtext("title"))
             se = it.find("source")
             press = clean(se.text) if se is not None and se.text else ""
+            if press.startswith("http"):                   # 매체명 대신 주소가 온 경우 도메인만
+                press = urlparse(press).netloc.removeprefix("www.")
             if press and title.endswith(" - " + press):
                 title = title[: -len(press) - 3].strip()
             try:
