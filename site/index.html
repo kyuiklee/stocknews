@@ -166,6 +166,8 @@ details.box ol{font-size:13px;color:var(--sub);line-height:1.6;padding-left:18px
 .hold.out{color:var(--sub)}
 .grp-h{font-size:13.5px;font-weight:700;color:var(--sub);margin:18px 2px 6px}
 
+.adv-line{font-size:12.5px;color:var(--sub);padding:0 14px 8px;margin-top:-2px}
+.adv-line b{color:var(--ink);font-weight:700}
 /* ---------- 하단 탭 ---------- */
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
   padding:6px 0 calc(6px + env(safe-area-inset-bottom));z-index:5}
@@ -395,6 +397,14 @@ function itemHtml(it, withName){
     <div class="t">${isNew(it)?'<span class="dot" aria-label="새 소식"></span>':''}${esc(it.title)}</div>
     <div class="m">${withName&&s?`<span class="sname">${esc(s.name)}</span>`:''}<span>${press}</span><span>${when(it)}</span>${tagHtml(it)}</div></a>`;
 }
+function advLine(code){
+  if(!X||!X.stake||!code) return '';
+  const last={};
+  X.stake.forEach(s=>{if(s.code!==code)return;if(!last[s.adv]||last[s.adv].date<s.date)last[s.adv]=s;});
+  const held=Object.values(last).filter(s=>s.rt!=null&&s.rt>=5&&s.dir!=='5%미만').sort((a,b)=>b.rt-a.rt);
+  if(!held.length) return '';
+  return `<div class="adv-line">운용사 지분 ${held.map(s=>`<b>${esc(s.adv.replace(/자산운용$/,''))} ${s.rt.toFixed(2)}%</b> (${md(s.date)} 보고)`).join(' · ')}</div>`;
+}
 function extLink(s){
   if(s.market==='KR') return `https://m.stock.naver.com/domestic/stock/${s.code}/total`;
   return `https://finance.yahoo.com/quote/${encodeURIComponent(s.code)}`;
@@ -424,6 +434,7 @@ function drawFeed(){
     const lst=by[s.id], n=nNew(s.id), lim=open[s.id]?lst.length:3;
     return `<div class="card"><div class="card-h"><span class="nm">${esc(s.name)}</span><span class="cd">${esc(s.code)}</span><span class="mk">${s.market==='KR'?'국내':'미국'}</span>
       ${n?`<span class="badge">새 ${n}</span>`:''}<span class="sp"></span><a class="ext" href="${extLink(s)}" target="_blank" rel="noopener noreferrer">시세 ↗</a></div>
+      ${s.market==='KR'?advLine(s.code):''}
       ${lst.slice(0,lim).map(it=>itemHtml(it,false)).join('')}
       ${lst.length>3?`<button class="more" data-sid="${esc(s.id)}">${open[s.id]?'접기':`${lst.length-3}건 더 보기`}</button>`:''}</div>`;
   }).join('');
@@ -613,7 +624,8 @@ let advMode=store.get('advMode','feed'), advPer=+store.get('advPer',90), advDir=
 const DIRK={신규:['buy','신규 5%↑'],증가:['buy','늘림'],감소:['sell','줄임'],'5%미만':['sell','5% 미만'],변동:['neu','변동']};
 const sgn=v=>v==null?'':(v>0?'+':'')+v.toFixed(2)+'%p';
 function stItem(s,showAdv=true){
-  const [c,lbl]=DIRK[s.dir]||['neu',s.dir||'보고'];
+  let [c,lbl]=DIRK[s.dir]||['neu',s.dir||'보고'];
+  if(/보유목적/.test(s.reason||'')&&(s.rt_chg==null||Math.abs(s.rt_chg)<1)){c='neu';lbl='보유목적 변경';}
   const l2=[showAdv?`<b>${esc(s.adv)}</b>`:'', s.rt!=null?`보유 <b>${s.rt.toFixed(2)}%</b>${s.rt_chg!=null&&s.dir!=='신규'?` (${sgn(s.rt_chg)})`:''}`:'', s.simple?'단순투자(약식)':'일반'].filter(Boolean).join(' · ');
   return `<a class="dc" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">
     <div class="h">${xNew(s)?'<span class="dot" aria-label="새 공시"></span>':''}<span class="co">${esc(s.name)}</span><span class="mk">${CLS[s.cls]||''}</span>${mineTag(s.code)}<span class="sp"></span><span class="k ${c}">${lbl}</span></div>
@@ -665,7 +677,9 @@ function drawAdv(){
 }
 $$('#advMode button').forEach(b=>b.onclick=()=>{advMode=b.dataset.v;store.set('advMode',advMode);drawAdv();});
 $$('#advPer button').forEach(b=>b.onclick=()=>{advPer=+b.dataset.v;store.set('advPer',advPer);setSeg('#advPer',String(advPer));drawAdv();});
-$$('#advDir button').forEach(b=>b.onclick=()=>{advDir=b.dataset.v;setSeg('#advDir',advDir);drawAdv();});
+$$('#advDir button').forEach(b=>b.onclick=()=>{advDir=b.dataset.v;setSeg('#advDir',advDir);
+  if(advDir==='mine'&&advPer<365){advPer=365;setSeg('#advPer','365');}      // 내 종목은 공시가 드물어 1년으로
+  drawAdv();});
 
 /* ---------- 운용사 목록 편집 (advisors.json) ---------- */
 let AO=null, AW=null, ASHA=null, aErr='';
