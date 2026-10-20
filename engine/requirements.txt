@@ -1,0 +1,3 @@
+requests
+finance-datareader
+pykrx

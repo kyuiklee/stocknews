@@ -1,0 +1,20 @@
+{
+  "keep_days": 7,
+  "max_per_stock": 80,
+  "search_days": 2,
+  "per_query_max": 30,
+  "google_title_filter": true,
+  "similar_title": 0.55,
+
+  "use_naver": true,
+  "use_google_ko": true,
+  "use_google_en": true,
+  "use_yahoo": true,
+  "use_dart": true,
+  "use_sec": true,
+
+  "sec_forms": ["8-K", "10-Q", "10-K", "6-K", "S-1", "S-3", "424B2", "424B3", "424B5", "SC 13D", "SC 13G", "SC 13D/A", "SC 13G/A", "DEF 14A"],
+  "sec_user_agent": "StockNews personal research app (github.com/kyuiklee/stocknews)",
+
+  "exclude_words": ["[포토]", "[사진]", "[인사]", "[부고]", "[게시판]"]
+}

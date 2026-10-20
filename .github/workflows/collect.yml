@@ -1,0 +1,72 @@
+name: 종목 뉴스 수집
+
+on:
+  schedule:
+    # 시간은 UTC 기준 (KST = UTC+9). 정각 혼잡을 피해 10분 일찍 시작합니다.
+    # GitHub 예약 실행은 수 분~수십 분 늦게 시작될 수 있습니다.
+    - cron: "50 20 * * *"   # 05:50 KST → 06시 수집
+    - cron: "50 2 * * *"    # 11:50 KST → 12시 수집
+    - cron: "50 8 * * *"    # 17:50 KST → 18시 수집
+    - cron: "50 14 * * *"   # 23:50 KST → 24시 수집
+  push:
+    branches: [main]
+    paths: ["stocks.json"]  # 앱에서 종목을 바꾸면 바로 수집
+  workflow_dispatch: {}     # GitHub 앱/웹에서 수동 실행 버튼
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: engine/requirements.txt
+
+      - run: pip install -r engine/requirements.txt
+
+      - name: 이전 결과·종목 캐시 복원
+        uses: actions/cache/restore@v4
+        with:
+          path: cache
+          key: news-${{ github.run_id }}
+          restore-keys: news-
+
+      - name: 뉴스 수집
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: python engine/collect.py
+
+      - name: 캐시 저장
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: cache
+          key: news-${{ github.run_id }}
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
