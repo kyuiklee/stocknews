@@ -610,6 +610,13 @@ def main():
     print(f"새 기사 {added}건, 전체 {len(items)}건, {time.time() - t0:.0f}초")
     for k, v in STATUS.items():
         print(f"  {k}: 성공 {v['ok']} 실패 {v['fail']} 기사 {v['items']}" + (f" ({v['err']})" if v["err"] else ""))
+    try:                                            # 자사주·투자자문 공시 (실패해도 뉴스는 배포)
+        import disclosures
+        disclosures.run(dart_key, NOW)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"공시 모음 실패: {e}")
     total_ok = sum(v["ok"] for k, v in STATUS.items() if k not in ("yahoo_name",))
     if stocks and total_ok == 0:
         print("모든 수집원이 실패했습니다")

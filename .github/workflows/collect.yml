@@ -10,7 +10,7 @@ on:
     - cron: "50 14 * * *"   # 23:50 KST → 24시 수집
   push:
     branches: [main]
-    paths: ["stocks.json"]  # 앱에서 종목을 바꾸면 바로 수집
+    paths: ["stocks.json", "advisors.json"]  # 앱에서 종목·운용사를 바꾸면 바로 수집
   workflow_dispatch: {}     # GitHub 앱/웹에서 수동 실행 버튼
 
 permissions:
@@ -25,7 +25,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 

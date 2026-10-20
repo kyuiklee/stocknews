@@ -128,6 +128,44 @@ details.box ol{font-size:13px;color:var(--sub);line-height:1.6;padding-left:18px
 .st:first-of-type{border-top:0}
 .st .bad{color:var(--up);font-weight:650}
 
+
+/* ---------- 자사주 · 투자자문 ---------- */
+.ctl .seg+.seg,.ctl .seg+.chips,.ctl .chips+.seg{margin-top:8px}
+.chips.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-left:-16px;margin-right:-16px;padding:0 16px}
+.chips.scroll::-webkit-scrollbar{display:none}
+.chips.scroll .chip-b{white-space:nowrap;flex:none}
+.chip-b small{font-weight:600;opacity:.75;margin-left:3px}
+.sum{background:var(--surface);border-radius:14px;padding:12px 14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sum div{font-size:12px;color:var(--sub)}
+.sum b{display:block;font-size:17px;color:var(--ink);font-weight:740;letter-spacing:-.01em}
+.dc{display:block;padding:11px 14px;border-top:1px solid var(--line);text-decoration:none}
+.list .dc:first-child{border-top:0}
+.dc .h{display:flex;align-items:center;gap:6px}
+.dc .co{font-size:15.5px;font-weight:700;letter-spacing:-.01em}
+.dc .h .sp{flex:1}
+.dc .l2{font-size:14px;margin-top:3px}
+.dc .l2 b{font-weight:720}
+.dc .l3{font-size:12.5px;color:var(--sub);margin-top:3px;line-height:1.5}
+.dc:visited .co{color:var(--visited)}
+.k{font-size:11.5px;font-weight:720;padding:1px 7px;border-radius:6px;line-height:1.5;white-space:nowrap}
+.k.buy{background:var(--up-soft);color:var(--up)}
+.k.trust{background:var(--warn-soft);color:var(--warn)}
+.k.burn{background:var(--disc-soft);color:var(--disc)}
+.k.sell{background:var(--down-soft);color:var(--down)}
+.k.neu{background:var(--track);color:var(--sub)}
+.mine{font-size:10.5px;font-weight:750;padding:0 5px;border-radius:5px;background:var(--ink);color:var(--bg);line-height:1.6}
+.pbar{height:4px;border-radius:2px;background:var(--track);overflow:hidden;margin-top:6px;max-width:220px}
+.pbar i{display:block;height:100%;background:var(--up)}
+.adv-h{display:flex;align-items:baseline;gap:8px;padding:12px 14px 4px}
+.adv-h .nm{font-size:16px;font-weight:720}
+.adv-h .g{font-size:11.5px;font-weight:650;color:var(--sub)}
+.adv-note{font-size:12.5px;color:var(--sub);padding:0 14px 8px;line-height:1.5}
+.hold{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);font-size:14px;text-decoration:none}
+.hold .r{font-weight:720;text-align:right;min-width:52px}
+.hold .d{font-size:12px;color:var(--sub);text-align:right;min-width:40px}
+.hold.out{color:var(--sub)}
+.grp-h{font-size:13.5px;font-weight:700;color:var(--sub);margin:18px 2px 6px}
+
 /* ---------- 하단 탭 ---------- */
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
   padding:6px 0 calc(6px + env(safe-area-inset-bottom));z-index:5}
@@ -165,6 +203,53 @@ nav .nb{position:absolute;top:0;left:calc(50% + 8px);font-size:10px;font-weight:
     </div>
     <div id="feed"><div class="loading">불러오는 중…</div></div>
     <p class="note">같은 내용을 여러 매체가 쓴 기사는 하나로 묶고 매체 수를 함께 보여 줍니다. ‘중요’는 실적·계약·임상·자금조달·증권가 의견·리스크 같은 낱말이 제목에 있는 기사와 공시입니다. 매수 권유가 아닙니다.</p>
+  </section>
+
+
+  <!-- ===== 자사주 ===== -->
+  <section class="view" id="v-bb" aria-label="자사주 공시">
+    <div class="ctl">
+      <div class="seg" role="group" aria-label="기간" id="bbPer">
+        <button data-v="7" aria-pressed="false">1주</button><button data-v="30" aria-pressed="true">1개월</button><button data-v="90" aria-pressed="false">3개월</button>
+      </div>
+      <div class="seg" role="group" aria-label="정렬" id="bbSort">
+        <button data-v="date" aria-pressed="true">최신순</button><button data-v="pct" aria-pressed="false">시총 대비 큰 순</button>
+      </div>
+      <div class="chips" role="group" aria-label="구분" id="bbKind">
+        <button class="chip-b" data-v="all" aria-pressed="true">전체</button>
+        <button class="chip-b" data-v="취득" aria-pressed="false">직접 취득</button>
+        <button class="chip-b" data-v="신탁" aria-pressed="false">신탁 계약</button>
+        <button class="chip-b" data-v="소각" aria-pressed="false">소각</button>
+        <button class="chip-b" data-v="처분" aria-pressed="false">처분·해지</button>
+        <button class="chip-b" data-v="mine" aria-pressed="false">내 종목만</button>
+      </div>
+    </div>
+    <div id="bbSum"></div>
+    <div id="bbList"><div class="loading">불러오는 중…</div></div>
+    <p class="note">DART 주요사항보고서의 자기주식 취득·신탁계약·처분 결정과 거래소 공시의 주식소각 결정입니다. 금액은 이사회가 정한 <b>예정</b> 금액이며, 실제 매수 여부는 결과보고서로 확인해야 합니다. 신탁 계약은 증권사에 맡겨 기간 중 나눠 사는 방식이라 실제 매수 규모가 계약금액보다 적을 수 있습니다. 시총 대비 비율은 공시를 받은 날의 시가총액 기준입니다.</p>
+  </section>
+
+  <!-- ===== 투자자문 ===== -->
+  <section class="view" id="v-adv" aria-label="투자자문 지분 공시">
+    <div class="ctl">
+      <div class="seg" role="group" aria-label="보기" id="advMode">
+        <button data-v="feed" aria-pressed="true">최근 공시</button><button data-v="by" aria-pressed="false">운용사별 보유</button><button data-v="edit" aria-pressed="false">운용사 목록</button>
+      </div>
+      <div id="advCtl">
+        <div class="seg" role="group" aria-label="기간" id="advPer">
+          <button data-v="30" aria-pressed="false">1개월</button><button data-v="90" aria-pressed="true">3개월</button><button data-v="365" aria-pressed="false">1년</button>
+        </div>
+        <div class="chips" role="group" aria-label="변동" id="advDir">
+          <button class="chip-b" data-v="all" aria-pressed="true">전체</button>
+          <button class="chip-b" data-v="buy" aria-pressed="false">신규·늘림</button>
+          <button class="chip-b" data-v="sell" aria-pressed="false">줄임·5% 미만</button>
+          <button class="chip-b" data-v="mine" aria-pressed="false">내 종목만</button>
+        </div>
+        <div class="chips scroll" role="group" aria-label="운용사" id="advPick"></div>
+      </div>
+    </div>
+    <div id="advBody"><div class="loading">불러오는 중…</div></div>
+    <p class="note" id="advNote">5% 이상 지분을 가진 투자자가 내는 대량보유 보고서(5%룰)만 잡힙니다. 5% 미만으로 산 종목은 공시되지 않고, 보고는 매매 후 최대 5영업일(약식은 다음 달 10일까지) 늦게 올라옵니다. ‘운용사별 보유’는 수집 기간 안의 마지막 보고 기준입니다.</p>
   </section>
 
   <!-- ===== 종목 관리 ===== -->
@@ -220,6 +305,8 @@ nav .nb{position:absolute;top:0;left:calc(50% + 8px);font-size:10px;font-weight:
 <nav aria-label="메뉴"><div class="wrap">
   <button data-v="portfolio" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v13H3zM3 7l2-3h14l2 3M16 13h2"/></svg>보유<span class="nb" id="nbP" hidden></span></button>
   <button data-v="watch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l2.5 5.2 5.5.8-4 3.9.9 5.6L12 16.9 7.1 19.5l.9-5.6-4-3.9 5.5-.8z"/></svg>관심<span class="nb" id="nbW" hidden></span></button>
+  <button data-v="bb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.7-5.6M20 12a8 8 0 0 1-13.7 5.6M18 3v4h-4M6 21v-4h4"/></svg>자사주<span class="nb" id="nbB" hidden></span></button>
+  <button data-v="adv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0M15.5 15.5l2 2 3.5-3.5"/></svg>투자자문<span class="nb" id="nbA" hidden></span></button>
   <button data-v="manage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h9M18 16v4M16 18h4"/></svg>종목</button>
 </div></nav>
 
@@ -270,14 +357,15 @@ const isNew = it => !!NEWBASE && it.first_seen > NEWBASE;
 
 /* ---------- 상단 ---------- */
 function drawHead(){
-  $('#ttl').textContent = view==='manage' ? '종목 관리' : (view==='watch' ? '관심 종목 뉴스' : '보유 종목 뉴스');
+  $('#ttl').textContent = {manage:'종목 관리',watch:'관심 종목 뉴스',bb:'자사주 공시',adv:'투자자문 지분 공시'}[view]||'보유 종목 뉴스';
   if(!D){return;}
-  const age=(Date.now()-new Date(D.updated))/36e5;
+  const upd=(view==='bb'||view==='adv')&&X?X.updated:D.updated;
+  const age=(Date.now()-new Date(upd))/36e5;
   const st=$('#status');
   st.className='chip '+(age>7?'stale':'ok'); st.textContent=age>7?'수집 지연':'최신';
   const now=kstParts(new Date()), nowH=now.h+now.m/60;
   const next=SLOTS.find(h=>h>nowH)||6;
-  $('#idx').innerHTML=`마지막 수집 <b>${shortTime(D.updated)}</b> · 다음 ${next===24?'24:00':String(next).padStart(2,'0')+':00'} 무렵`;
+  $('#idx').innerHTML=`마지막 수집 <b>${shortTime(upd)}</b> · 다음 ${next===24?'24:00':String(next).padStart(2,'0')+':00'} 무렵`;
   // 오늘 수집 칸 — 각 시각 앞뒤로 실행된 기록이 있으면 완료
   const runs=(D.runs||[]).map(r=>new Date(r.at).getTime());
   const base=new Date(now.date+'T00:00:00+09:00').getTime();
@@ -454,20 +542,211 @@ $('#tokDel').onclick=()=>{store.del('tok');$('#tokMsg').className='msg';$('#tokM
 
 function drawStatus(){
   if(!D){$('#srcStat').innerHTML='<p class="note">아직 수집 기록이 없습니다.</p>';return;}
-  const NM={naver:'네이버 증권 뉴스',naver_pc:'네이버 증권(PC)',google_ko:'구글 뉴스 (국문)',google_en:'구글 뉴스 (영문)',yahoo:'야후 파이낸스',dart:'DART 공시',sec:'SEC 공시',yahoo_name:'야후 종목명 조회'};
-  const rows=Object.entries(D.status||{}).map(([k,v])=>`<div class="st"><span>${NM[k]||esc(k)}</span><span${v.fail&&!v.ok?' class="bad"':''}>${v.ok}회 성공${v.fail?` · ${v.fail}회 실패`:''} · ${v.items}건</span></div>`).join('');
+  const NM={dart_bb:'자사주 공시 목록',dart_so:'소각 공시 목록',dart_bb_detail:'자사주 상세',dart_stake:'지분 공시 목록',dart_stake_detail:'지분 공시 상세',naver:'네이버 증권 뉴스',naver_pc:'네이버 증권(PC)',google_ko:'구글 뉴스 (국문)',google_en:'구글 뉴스 (영문)',yahoo:'야후 파이낸스',dart:'DART 공시',sec:'SEC 공시',yahoo_name:'야후 종목명 조회'};
+  const rows=Object.entries({...(D.status||{}),...(X&&X.status||{})}).map(([k,v])=>`<div class="st"><span>${NM[k]||esc(k)}</span><span${v.fail&&!v.ok?' class="bad"':''}>${v.ok}회 성공${v.fail?` · ${v.fail}회 실패`:''} · ${v.items}건</span></div>`).join('');
   const last=(D.runs||[]).slice(-6).reverse().map(r=>`<div class="st"><span>${shortTime(r.at)}</span><span>새 소식 ${r.new}건</span></div>`).join('');
   $('#srcStat').innerHTML=`<p class="note">마지막 수집(${shortTime(D.updated)}) 기준입니다.${D.dart?'':' DART 키가 없어 국내 공시는 빠져 있습니다.'}</p>${rows}<h3 class="day-h">최근 수집</h3>${last}`;
 }
 
+
+/* ---------- 공시 공통 ---------- */
+let X=null, XBASE='';                 // disc.json
+const won=v=>{if(v==null)return '-';const e=v/1e8;if(e>=10000)return (e/10000).toFixed(e>=100000?0:1).replace(/\.0$/,'')+'조원';
+  if(e>=100)return Math.round(e).toLocaleString('ko-KR')+'억원';if(e>=1)return e.toFixed(1).replace(/\.0$/,'')+'억원';return Math.round(v/1e4).toLocaleString('ko-KR')+'만원';};
+const md=d=>d?`${+d.slice(5,7)}/${+d.slice(8,10)}`:'';
+const CLS={Y:'코스피',K:'코스닥',N:'코넥스'};
+function myStock(code){if(!code||!D)return null;const s=(D.stocks||[]).find(x=>x.market==='KR'&&x.code===code);return s?s.group:null;}
+function mineTag(code){const g=myStock(code);return g?`<span class="mine">${g==='portfolio'?'보유':'관심'}</span>`:'';}
+const sinceDays=n=>{const t=new Date(Date.now()-n*864e5);return kstParts(t).date;};
+function setXBase(){
+  const s=store.get('seen_x',null);
+  if(!s){store.set('seen_x',{last:X.updated,base:''});XBASE='';return;}
+  if(s.last!==X.updated){XBASE=s.last;store.set('seen_x',{last:X.updated,base:s.last});} else XBASE=s.base||'';
+}
+const xNew=it=>!!XBASE && it.seen && it.seen>XBASE;
+function dayGroups(items,render){
+  let h='',cur=null,buf=[];
+  const flush=()=>{if(buf.length)h+=`<h3 class="day-h">${cur}</h3><div class="list">${buf.join('')}</div>`;buf=[];};
+  items.forEach(it=>{const d=dayLabel(it.date+'T12:00:00+09:00');if(d!==cur){flush();cur=d;}buf.push(render(it));});
+  flush();return h;
+}
+function noDisc(el){
+  el.innerHTML=X===false?'<div class="empty">공시 모음을 아직 받지 못했습니다. 다음 수집 뒤에 다시 열어 주세요.</div>'
+    :'<div class="empty">DART 키가 없거나 아직 수집 전입니다.</div>';
+}
+
+/* ---------- 자사주 ---------- */
+let bbPer=+store.get('bbPer',30), bbSort=store.get('bbSort','date'), bbKind='all';
+const BBK={취득:['buy','직접 취득'],신탁:['trust','신탁 계약'],소각:['burn','소각'],처분:['sell','처분'],신탁해지:['sell','신탁 해지']};
+function bbItem(b){
+  const [c,lbl]=BBK[b.kind]||['neu',b.kind];
+  const per=b.from||b.to?`${md(b.from)}~${md(b.to)}`:'';
+  const l3=[per&&(b.kind==='신탁'?'계약기간 ':'기간 ')+per, b.purpose, b.kind==='신탁'?b.agent:b.method].filter(Boolean).map(esc).join(' · ');
+  const pct=b.pct!=null?Math.min(100,b.pct/5*100):0;
+  return `<a class="dc" href="${esc(b.url)}" target="_blank" rel="noopener noreferrer">
+    <div class="h">${xNew(b)?'<span class="dot" aria-label="새 공시"></span>':''}<span class="co">${esc(b.name)}</span><span class="mk">${CLS[b.cls]||''}</span>${mineTag(b.code)}<span class="sp"></span>${b.fix?'<span class="k neu">정정</span>':''}<span class="k ${c}">${lbl}</span></div>
+    ${b.amount?`<div class="l2"><b>${won(b.amount)}</b>${b.pct!=null?` · 시총 대비 <b>${b.pct.toFixed(b.pct<0.1?2:1)}%</b>`:''}${b.shares?` · ${Math.round(b.shares).toLocaleString('ko-KR')}주`:''}</div>${b.pct!=null&&b.kind!=='처분'&&b.kind!=='신탁해지'?`<div class="pbar"><i style="width:${pct}%"></i></div>`:''}`:`<div class="l2 mute">${esc(b.title)}</div>`}
+    ${l3?`<div class="l3">${l3}</div>`:''}</a>`;
+}
+function drawBB(){
+  const el=$('#bbList'), sum=$('#bbSum');
+  if(!X||!X.buyback){sum.innerHTML='';noDisc(el);return;}
+  const from=sinceDays(bbPer);
+  let all=X.buyback.filter(b=>b.date>=from);
+  let items=all.filter(b=>bbKind==='all'?true:bbKind==='mine'?!!myStock(b.code):bbKind==='처분'?(b.kind==='처분'||b.kind==='신탁해지'):b.kind===bbKind);
+  const buys=all.filter(b=>(b.kind==='취득'||b.kind==='신탁')&&!b.fix), tot=buys.reduce((a,b)=>a+(b.amount||0),0);
+  sum.innerHTML=`<div class="sum"><div>취득·신탁 결정<b>${buys.length}건</b></div><div>예정 금액 합계<b>${won(tot)}</b></div><div>소각 결정<b>${all.filter(b=>b.kind==='소각').length}건</b></div></div>`;
+  if(!items.length){el.innerHTML='<div class="empty" style="margin-top:10px">해당 기간에 공시가 없습니다.</div>';return;}
+  if(bbSort==='pct'){
+    items=[...items].sort((a,b)=>(b.pct??-1)-(a.pct??-1));
+    el.innerHTML=`<h3 class="day-h">시총 대비 예정 금액이 큰 순</h3><div class="list">${items.slice(0,200).map(b=>bbItem(b).replace('<div class="h">',`<div class="h"><span class="mute" style="font-size:12.5px;min-width:34px">${md(b.date)}</span>`)).join('')}</div>`;
+  } else el.innerHTML=dayGroups(items.slice(0,300),bbItem);
+}
+$$('#bbPer button').forEach(b=>b.onclick=()=>{bbPer=+b.dataset.v;store.set('bbPer',bbPer);setSeg('#bbPer',String(bbPer));drawBB();});
+$$('#bbSort button').forEach(b=>b.onclick=()=>{bbSort=b.dataset.v;store.set('bbSort',bbSort);setSeg('#bbSort',bbSort);drawBB();});
+$$('#bbKind button').forEach(b=>b.onclick=()=>{bbKind=b.dataset.v;setSeg('#bbKind',bbKind);drawBB();});
+
+/* ---------- 투자자문 ---------- */
+let advMode=store.get('advMode','feed'), advPer=+store.get('advPer',90), advDir='all', advPick='all';
+const DIRK={신규:['buy','신규 5%↑'],증가:['buy','늘림'],감소:['sell','줄임'],'5%미만':['sell','5% 미만'],변동:['neu','변동']};
+const sgn=v=>v==null?'':(v>0?'+':'')+v.toFixed(2)+'%p';
+function stItem(s,showAdv=true){
+  const [c,lbl]=DIRK[s.dir]||['neu',s.dir||'보고'];
+  const l2=[showAdv?`<b>${esc(s.adv)}</b>`:'', s.rt!=null?`보유 <b>${s.rt.toFixed(2)}%</b>${s.rt_chg!=null&&s.dir!=='신규'?` (${sgn(s.rt_chg)})`:''}`:'', s.simple?'단순투자(약식)':'일반'].filter(Boolean).join(' · ');
+  return `<a class="dc" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">
+    <div class="h">${xNew(s)?'<span class="dot" aria-label="새 공시"></span>':''}<span class="co">${esc(s.name)}</span><span class="mk">${CLS[s.cls]||''}</span>${mineTag(s.code)}<span class="sp"></span><span class="k ${c}">${lbl}</span></div>
+    <div class="l2">${l2}</div>${s.reason?`<div class="l3">${esc(s.reason)}</div>`:''}</a>`;
+}
+function advFiltered(){
+  const from=sinceDays(advPer);
+  return (X.stake||[]).filter(s=>s.date>=from && (advPick==='all'||s.adv===advPick) &&
+    (advDir==='all'||(advDir==='buy'&&(s.dir==='신규'||s.dir==='증가'))||(advDir==='sell'&&(s.dir==='감소'||s.dir==='5%미만'))||(advDir==='mine'&&!!myStock(s.code))));
+}
+function drawAdvPick(){
+  const from=sinceDays(advMode==='by'?99999:advPer), cnt={};
+  (X?.stake||[]).forEach(s=>{if(s.date>=from)cnt[s.adv]=(cnt[s.adv]||0)+1;});
+  const names=(X?.advisors||[]).map(a=>a.name);
+  if(advPick!=='all'&&!names.includes(advPick)) advPick='all';
+  $('#advPick').innerHTML=`<button class="chip-b" data-v="all" aria-pressed="${advPick==='all'}">모든 운용사</button>`+
+    names.map(n=>`<button class="chip-b" data-v="${esc(n)}" aria-pressed="${advPick===n}">${esc(n.replace(/자산운용$/,''))}<small>${cnt[n]||0}</small></button>`).join('');
+  $$('#advPick button').forEach(b=>b.onclick=()=>{advPick=b.dataset.v;drawAdv();});
+}
+function drawAdv(){
+  setSeg('#advMode',advMode);
+  const body=$('#advBody');
+  $('#advCtl').hidden=advMode==='edit'; $('#advNote').hidden=advMode==='edit';
+  $('#advPer').hidden=advMode!=='feed'; $('#advDir').hidden=advMode!=='feed';
+  if(advMode==='edit'){ drawAdvEdit(); return; }
+  if(!X||!X.stake){noDisc(body);return;}
+  drawAdvPick();
+  if(advMode==='feed'){
+    const items=advFiltered();
+    body.innerHTML=items.length?dayGroups(items.slice(0,300),s=>stItem(s,advPick==='all')):'<div class="empty">해당 기간에 지분 공시가 없습니다.</div>';
+    return;
+  }
+  // 운용사별: (운용사, 회사)별 마지막 보고
+  const last={};
+  (X.stake||[]).forEach(s=>{const k=s.adv+'|'+(s.corp||s.name);if(!last[k]||last[k].date<s.date||(last[k].date===s.date&&last[k].id<s.id))last[k]=s;});
+  const by={};Object.values(last).forEach(s=>(by[s.adv]=by[s.adv]||[]).push(s));
+  const advs=(X.advisors||[]).filter(a=>advPick==='all'||a.name===advPick);
+  let h='',grp=null;
+  advs.forEach(a=>{
+    if(a.group!==grp){grp=a.group;h+=`<h3 class="grp-h">${esc(grp||'기타')}</h3>`;}
+    const lst=(by[a.name]||[]).sort((x,y)=>y.date<x.date?-1:1);
+    const hold=lst.filter(s=>!(s.dir==='5%미만'||(s.rt!=null&&s.rt<5))), out=lst.filter(s=>!hold.includes(s));
+    const row=(s,o)=>`<a class="hold${o?' out':''}" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer"><span>${esc(s.name)} ${mineTag(s.code)}</span><span class="r">${s.rt!=null?s.rt.toFixed(2)+'%':'-'}</span><span class="d">${md(s.date)}</span></a>`;
+    h+=`<div class="card"><div class="adv-h"><span class="nm">${esc(a.name)}</span><span class="g">5% 이상 ${hold.length}종목</span></div>${a.note?`<div class="adv-note">${esc(a.note)}</div>`:''}
+      ${hold.map(s=>row(s,false)).join('')||'<div class="hold out"><span>수집 기간에 지분 공시 없음</span></div>'}
+      ${out.length?`<div class="hold out" style="font-size:12.5px;font-weight:650"><span>5% 미만으로 줄인 종목</span></div>${out.map(s=>row(s,true)).join('')}`:''}</div>`;
+  });
+  body.innerHTML=h||'<div class="empty">운용사가 없습니다.</div>';
+}
+$$('#advMode button').forEach(b=>b.onclick=()=>{advMode=b.dataset.v;store.set('advMode',advMode);drawAdv();});
+$$('#advPer button').forEach(b=>b.onclick=()=>{advPer=+b.dataset.v;store.set('advPer',advPer);setSeg('#advPer',String(advPer));drawAdv();});
+$$('#advDir button').forEach(b=>b.onclick=()=>{advDir=b.dataset.v;setSeg('#advDir',advDir);drawAdv();});
+
+/* ---------- 운용사 목록 편집 (advisors.json) ---------- */
+let AO=null, AW=null, ASHA=null, aErr='';
+async function loadAdv(){
+  aErr='';
+  try{const r=await api('contents/advisors.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);
+    const j=await r.json();ASHA=j.sha;AO=JSON.parse(b64dec(j.content));}
+  catch(e){aErr=String(e.message||e);AO={advisors:JSON.parse(JSON.stringify(X?.advisors||[]))};ASHA=null;}
+  AO.advisors=AO.advisors||[];AW=JSON.parse(JSON.stringify(AO));drawAdvEdit();
+}
+function drawAdvEdit(){
+  const body=$('#advBody');
+  if(!AW){body.innerHTML='<div class="loading">불러오는 중…</div>';loadAdv();return;}
+  const dirty=JSON.stringify(AW)!==JSON.stringify(AO);
+  const cnt={};(X?.stake||[]).forEach(s=>cnt[s.adv]=(cnt[s.adv]||0)+1);
+  const have=n=>AW.advisors.some(a=>(a.match||[a.name]).some(m=>n.replace(/\s/g,'').toUpperCase().includes(m.replace(/\s/g,'').toUpperCase())));
+  const others=(X?.other_filers||[]).filter(o=>!have(o.name)).slice(0,25);
+  body.innerHTML=`
+    ${dirty?`<div class="savebar"><span>저장 안 한 변경 있음</span><button class="btn ghost" id="aUndo">되돌리기</button><button class="btn" id="aSave">변경 저장</button></div>`:''}
+    <div class="msg" id="aMsg"></div>
+    ${aErr?`<div class="warn">GitHub에서 최신 목록을 읽지 못해 마지막 수집 기준 목록을 보여 줍니다 (${esc(aErr)}).</div>`:''}
+    <div class="list">${AW.advisors.map((a,i)=>`<div class="row"><div><div class="nm2">${esc(a.name)} <span class="mute" style="font-size:12px;font-weight:600">${esc(a.group||'')}</span></div>
+      <div class="sub">${esc(a.note||'')}</div><div class="sub">공시 이름: ${esc((a.match||[a.name]).join(', '))}${cnt[a.name]!=null?` · 수집 ${cnt[a.name]}건`:(X?' · 아직 0건':'')}</div></div>
+      <span></span><button class="btn sm del" data-ar="${i}" aria-label="${esc(a.name)} 삭제">삭제</button></div>`).join('')||'<div class="empty" style="border-radius:0">비어 있음</div>'}</div>
+    <h2 class="sec-title">운용사 추가</h2>
+    <div class="form">
+      <div class="seg" role="group" aria-label="구분" id="aGrp"><button data-v="가치투자" aria-pressed="true">가치투자</button><button data-v="행동주의" aria-pressed="false">행동주의</button><button data-v="기타" aria-pressed="false">기타</button></div>
+      <label>이름<input class="inp" id="aName" autocomplete="off" placeholder="예: 타임폴리오자산운용"></label>
+      <label>DART 공시 이름에 들어간 낱말 (쉼표로 여러 개, 비우면 이름 그대로)<input class="inp" id="aMatch" autocomplete="off" placeholder="예: 타임폴리오"></label>
+      <label>메모<input class="inp" id="aNote" autocomplete="off" placeholder="투자 성향 등"></label>
+      <div class="btns"><button class="btn pri" id="aAdd">목록에 추가</button></div>
+    </div>
+    ${others.length?`<h2 class="sec-title">최근 지분 공시를 낸 다른 운용사</h2><p class="note">수집 기간 동안 5% 지분 공시를 낸 운용·자문사 중 목록에 없는 곳입니다 (괄호는 건수). 누르면 위 칸에 채워집니다.</p>
+      <div class="chips">${others.map(o=>`<button class="chip-b" data-ao="${esc(o.name)}">${esc(o.name)}<small>${o.n}</small></button>`).join('')}</div>`:''}
+    <p class="note">운용사를 추가하고 저장하면 그 운용사의 지난 1년치 지분 공시를 다시 모읍니다 (몇 분 걸림). 저장에는 종목 탭의 GitHub 연결이 필요합니다.</p>`;
+  let grp='가치투자';
+  $$('#aGrp button').forEach(b=>b.onclick=()=>{grp=b.dataset.v;setSeg('#aGrp',grp);});
+  $$('[data-ar]').forEach(b=>b.onclick=()=>{AW.advisors.splice(+b.dataset.ar,1);drawAdvEdit();});
+  $$('[data-ao]').forEach(b=>b.onclick=()=>{$('#aName').value=b.dataset.ao;$('#aMatch').value=b.dataset.ao.replace(/자산운용$|투자자문$/,'');$('#aName').scrollIntoView({behavior:'smooth',block:'center'});});
+  $('#aAdd').onclick=()=>{
+    const m=$('#aMsg'),name=$('#aName').value.trim();
+    if(!name){m.className='msg err';m.textContent='이름을 넣어 주세요.';$('#aName').focus();return;}
+    if(AW.advisors.some(a=>a.name===name)){m.className='msg err';m.textContent='이미 목록에 있습니다.';return;}
+    const match=$('#aMatch').value.split(',').map(x=>x.trim()).filter(Boolean);
+    AW.advisors.push({name,match:match.length?match:[name],group:grp,note:$('#aNote').value.trim()});
+    drawAdvEdit(); const m2=$('#aMsg'); m2.className='msg ok'; m2.textContent=`${name}을(를) 넣었습니다. 위의 변경 저장을 눌러 주세요.`; scrollTo({top:0,behavior:'smooth'});
+  };
+  if(dirty){
+    $('#aUndo').onclick=()=>{AW=JSON.parse(JSON.stringify(AO));drawAdvEdit();};
+    $('#aSave').onclick=async()=>{
+      const m=$('#aMsg');
+      if(!token()){m.className='msg err';m.textContent='먼저 종목 탭 아래 GitHub 연결에서 토큰을 저장해 주세요.';return;}
+      const btn=$('#aSave');btn.disabled=true;btn.textContent='저장 중…';
+      try{
+        if(!ASHA){const r=await api('contents/advisors.json?t='+Date.now(),{cache:'no-store'});if(r.ok)ASHA=(await r.json()).sha;}
+        const r=await api('contents/advisors.json',{method:'PUT',body:JSON.stringify({message:'운용사 목록 변경 (앱에서)',content:b64enc(JSON.stringify(AW,null,2)+'\n'),sha:ASHA||undefined})});
+        if(r.status===409||r.status===422){await loadAdv();throw new Error('그사이 목록이 바뀌었습니다. 다시 불러왔으니 확인 후 저장해 주세요');}
+        if(r.status===401||r.status===403)throw new Error('토큰 권한이 없습니다');
+        if(!r.ok)throw new Error('HTTP '+r.status);
+        ASHA=(await r.json()).content.sha;AO=JSON.parse(JSON.stringify(AW));drawAdvEdit();
+        const m2=$('#aMsg');m2.className='msg ok';m2.textContent='저장했습니다. 몇 분 뒤 새 목록 기준으로 지분 공시가 다시 모입니다.';
+      }catch(e){drawAdvEdit();const m2=$('#aMsg');m2.className='msg err';m2.textContent='저장 실패: '+(e.message||e);}
+    };
+  }
+}
+function drawXBadges(){
+  const nb=X&&X.buyback?X.buyback.filter(xNew).length:0, na=X&&X.stake?X.stake.filter(xNew).length:0;
+  for(const [id,n] of [['#nbB',nb],['#nbA',na]]){const b=$(id);b.hidden=!n;b.textContent=n>99?'99+':n;}
+}
+
 /* ---------- 화면 전환 ---------- */
+const VIEWS=['portfolio','watch','bb','adv','manage'];
 function show(v){
   view=v; store.set('view',v);
   $$('nav button').forEach(b=>{if(b.dataset.v===v)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
-  $('#v-feed').classList.toggle('on',v!=='manage'); $('#v-manage').classList.toggle('on',v==='manage');
+  $('#v-feed').classList.toggle('on',v==='portfolio'||v==='watch');
+  $('#v-bb').classList.toggle('on',v==='bb'); $('#v-adv').classList.toggle('on',v==='adv');
+  $('#v-manage').classList.toggle('on',v==='manage');
   $('#slots').hidden=v==='manage';
   drawHead();
   if(v==='manage'){ if(!WORK) loadList(); else drawManage(); drawStatus(); }
+  else if(v==='bb') drawBB();
+  else if(v==='adv') drawAdv();
   else drawFeed();
   scrollTo(0,0);
 }
@@ -476,12 +755,13 @@ $$('#mode button').forEach(b=>b.onclick=()=>{mode=b.dataset.v;store.set('mode',m
 $$('#flt button').forEach(b=>b.onclick=()=>{flt=b.dataset.v;setSeg('#flt',flt);drawFeed();});
 
 async function load(){
-  try{
-    const r=await fetch('data/news.json?t='+Date.now(),{cache:'no-store'});
-    D=r.ok?await r.json():null;
-  }catch(e){D=null;}
+  const get=n=>fetch(`data/${n}?t=${Date.now()}`,{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null);
+  const [a,b]=await Promise.all([get('news.json'),get('disc.json')]);
+  D=a; X=b||false;
   if(D){ D._sid={}; D.stocks.forEach(s=>D._sid[s.id]=s); setNewBase(); }
-  setSeg('#mode',mode); drawBadges(); show(['portfolio','watch','manage'].includes(view)?view:'portfolio');
+  if(X) setXBase();
+  setSeg('#mode',mode); setSeg('#bbPer',String(bbPer)); setSeg('#bbSort',bbSort); setSeg('#advPer',String(advPer));
+  drawBadges(); drawXBadges(); show(VIEWS.includes(view)?view:'portfolio');
 }
 load();
 // 다시 열었을 때 새 수집 결과가 있으면 반영
