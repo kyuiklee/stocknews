@@ -429,7 +429,10 @@ function drawFeed(){
   const by={}; items.forEach(it=>(by[it.sid]=by[it.sid]||[]).push(it));
   const nNew=sid=>all.filter(it=>it.sid===sid&&isNew(it)).length;
   const withNews=sts.filter(s=>by[s.id]).sort((a,b)=>(nNew(b.id)-nNew(a.id))||(by[b.id][0].time>by[a.id][0].time?1:-1));
-  const quiet=sts.filter(s=>!by[s.id]);
+  let quiet=sts.filter(s=>!by[s.id]);
+  // 뉴스는 없어도 운용사 지분 공시가 있는 종목은 카드로 보여 줌
+  const quietAdv=flt==='all'?quiet.filter(s=>s.market==='KR'&&advLine(s.code)):[];
+  quiet=quiet.filter(s=>!quietAdv.includes(s));
   let h=withNews.map(s=>{
     const lst=by[s.id], n=nNew(s.id), lim=open[s.id]?lst.length:3;
     return `<div class="card"><div class="card-h"><span class="nm">${esc(s.name)}</span><span class="cd">${esc(s.code)}</span><span class="mk">${s.market==='KR'?'국내':'미국'}</span>
@@ -438,7 +441,8 @@ function drawFeed(){
       ${lst.slice(0,lim).map(it=>itemHtml(it,false)).join('')}
       ${lst.length>3?`<button class="more" data-sid="${esc(s.id)}">${open[s.id]?'접기':`${lst.length-3}건 더 보기`}</button>`:''}</div>`;
   }).join('');
-  if(!withNews.length) h=`<div class="empty">${flt==='new'?'지난번 확인 이후 새 소식이 없습니다.':'조건에 맞는 소식이 없습니다.'}</div>`;
+  h+=quietAdv.map(s=>`<div class="card"><div class="card-h"><span class="nm">${esc(s.name)}</span><span class="cd">${esc(s.code)}</span><span class="mk">국내</span><span class="sp"></span><a class="ext" href="${extLink(s)}" target="_blank" rel="noopener noreferrer">시세 ↗</a></div>${advLine(s.code)}<div class="adv-line">최근 7일 뉴스 없음</div></div>`).join('');
+  if(!withNews.length&&!quietAdv.length) h=`<div class="empty">${flt==='new'?'지난번 확인 이후 새 소식이 없습니다.':'조건에 맞는 소식이 없습니다.'}</div>`;
   if(quiet.length) h+=`<p class="quiet">${flt==='all'?`최근 ${7}일 소식 없음`:'해당 소식 없음'}: ${quiet.map(s=>esc(s.name)).join(', ')}</p>`;
   el.innerHTML=h;
   $$('#feed .more').forEach(b=>b.onclick=()=>{open[b.dataset.sid]=!open[b.dataset.sid];drawFeed();});
