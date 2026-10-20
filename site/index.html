@@ -354,7 +354,7 @@ function drawBadges(){
 /* ---------- 종목 관리 ---------- */
 let ORIG=null, WORK=null, SHA=null, ghErr='';
 const token=()=>store.get('tok','');
-const api=(path,opt={})=>fetch(`https://api.github.com/repos/${REPO.owner}/${REPO.name}/${path}`,{...opt,
+const api=(path,opt={})=>fetch(`https://api.github.com/repos/${REPO.owner}/${REPO.name}${path?'/'+path:''}`,{...opt,
   headers:{'Accept':'application/vnd.github+json',...(token()?{'Authorization':'Bearer '+token()}:{}),...(opt.headers||{})}});
 const b64dec=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g,'')),c=>c.charCodeAt(0)));
 const b64enc=s=>{const b=new TextEncoder().encode(s);let x='';b.forEach(c=>x+=String.fromCharCode(c));return btoa(x);};
@@ -437,13 +437,13 @@ $('#fAdd').onclick=()=>{
   drawManage();
 };
 $('#tokSave').onclick=async()=>{
-  const v=$('#tok').value.trim(), m=$('#tokMsg');
+  const v=$('#tok').value.replace(/[\s\u200b-\u200d\ufeff]/g,''), m=$('#tokMsg');      // 붙여넣을 때 섞인 공백·보이지 않는 글자 제거
   if(v) store.set('tok',v);
   if(!token()){m.className='msg err';m.textContent='토큰을 붙여넣어 주세요.';return;}
   m.className='msg';m.textContent='확인 중…';
   try{
     const r=await api('');
-    if(!r.ok) throw new Error(r.status===404||r.status===401?'토큰이 이 저장소를 볼 수 없습니다':'HTTP '+r.status);
+    if(!r.ok) throw new Error(r.status===401?'토큰이 틀렸거나 만료됐습니다':(r.status===404?'토큰에 이 저장소(stocknews)가 선택돼 있지 않습니다':'HTTP '+r.status));
     const j=await r.json();
     if(j.permissions && !j.permissions.push) throw new Error('쓰기 권한이 없습니다 (Contents: Read and write)');
     $('#tok').value=''; m.className='msg ok'; m.textContent='연결됐습니다. 이제 변경 저장을 쓸 수 있습니다.'; loadList();
