@@ -368,7 +368,7 @@ def stakes(dart, prev, today, advisors):
         st["st_advisors"] = sig
         st["other_recent"] = sorted(set(recent_ids))
     # 다른 운용사 후보: 이번에 훑은 기간 기준. 겹쳐 받는 짧은 기간이면 이전 집계와 합침
-    prev_others = {o["name"]: o["n"] for o in prev.get("other_filers", [])}
+    prev_others = {o["name"]: o["n"] for o in prev.get("other_filers", []) if not re.search(BIG_HOUSES, o["name"])}
     if last and not added_adv:
         for k, v in others.items():
             prev_others[k] = prev_others.get(k, 0) + v
