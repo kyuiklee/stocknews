@@ -148,7 +148,7 @@ def pick(d, *keys):
     for k in keys:
         v = d.get(k)
         if v not in (None, "", "-"):
-            return v
+            return re.sub(r"\s+", " ", str(v)).strip()        # 줄바꿈 섞인 값 정리
     return None
 
 
@@ -276,6 +276,11 @@ def load_advisors():
         return []
 
 
+# 추천 후보에서 뺄 곳: 대형·지수형 운용사, 부동산 운용사, 벤처캐피탈
+BIG_HOUSES = (r"미래에셋|삼성자산|삼성액티브|KB자산|케이비자산|한화자산|신한자산|NH-Amundi|키움투자|한국투자신탁|"
+              r"교보악사|하나자산|우리자산|DB자산|이지스|코람코|마스턴|인베스트먼트|캐피탈|벤처|국민연금|블랙록|뱅가드")
+
+
 def adv_of(flr, advisors):
     n = norm_name(flr)
     for a in advisors:
@@ -308,7 +313,7 @@ def stakes(dart, prev, today, advisors):
         flr = r.get("flr_nm") or ""
         adv = adv_of(flr, advisors)
         if not adv:
-            if re.search(r"자산운용|투자자문|파트너스|인베스트먼트|캐피탈", flr):
+            if re.search(r"자산운용|투자자문|파트너스|투자일임", flr) and not re.search(BIG_HOUSES, flr):
                 rid = r["rcept_no"]
                 if ymd(r["rcept_dt"]) >= recent_from:
                     recent_ids.append(rid)

@@ -581,11 +581,13 @@ const BBK={취득:['buy','직접 취득'],신탁:['trust','신탁 계약'],소�
 function bbItem(b){
   const [c,lbl]=BBK[b.kind]||['neu',b.kind];
   const per=b.from||b.to?`${md(b.from)}~${md(b.to)}`:'';
-  const l3=[per&&(b.kind==='신탁'?'계약기간 ':'기간 ')+per, b.purpose, b.kind==='신탁'?b.agent:b.method].filter(Boolean).map(esc).join(' · ');
+  const cl=v=>v?String(v).replace(/\s+/g,' ').replace(/\s*\([A-Za-z ,.&]+\)\s*$/,'').trim():v;   // 줄바꿈·영문 회사명 괄호 정리
+  const l3=[per&&(b.kind==='신탁'?'계약기간 ':'기간 ')+per, cl(b.purpose), cl(b.kind==='신탁'||b.kind==='신탁해지'?b.agent:b.method)].filter(Boolean).map(esc).join(' · ');
+  const pctTxt=b.pct==null?'':(b.pct<0.01?'0.01% 미만':b.pct.toFixed(b.pct<0.1?2:1)+'%');
   const pct=b.pct!=null?Math.min(100,b.pct/5*100):0;
   return `<a class="dc" href="${esc(b.url)}" target="_blank" rel="noopener noreferrer">
     <div class="h">${xNew(b)?'<span class="dot" aria-label="새 공시"></span>':''}<span class="co">${esc(b.name)}</span><span class="mk">${CLS[b.cls]||''}</span>${mineTag(b.code)}<span class="sp"></span>${b.fix?'<span class="k neu">정정</span>':''}<span class="k ${c}">${lbl}</span></div>
-    ${b.amount?`<div class="l2"><b>${won(b.amount)}</b>${b.pct!=null?` · 시총 대비 <b>${b.pct.toFixed(b.pct<0.1?2:1)}%</b>`:''}${b.shares?` · ${Math.round(b.shares).toLocaleString('ko-KR')}주`:''}</div>${b.pct!=null&&b.kind!=='처분'&&b.kind!=='신탁해지'?`<div class="pbar"><i style="width:${pct}%"></i></div>`:''}`:`<div class="l2 mute">${esc(b.title)}</div>`}
+    ${b.amount?`<div class="l2"><b>${won(b.amount)}</b>${b.pct!=null?` · 시총 대비 <b>${pctTxt}</b>`:''}${b.shares?` · ${Math.round(b.shares).toLocaleString('ko-KR')}주`:''}</div>${b.pct!=null&&b.kind!=='처분'&&b.kind!=='신탁해지'?`<div class="pbar"><i style="width:${pct}%"></i></div>`:''}`:`<div class="l2 mute">${esc(b.title)}</div>`}
     ${l3?`<div class="l3">${l3}</div>`:''}</a>`;
 }
 function drawBB(){
