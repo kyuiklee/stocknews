@@ -390,7 +390,10 @@ def sec_ciks():
                          headers={"User-Agent": CFG["sec_user_agent"]}, timeout=30)
         r.raise_for_status()
         return {v["ticker"].upper(): int(v["cik_str"]) for v in r.json().values()}
-    return cache_json("sec_tickers.json", 24 * 7, load) or {}
+    m = cache_json("sec_tickers.json", 24 * 7, load) or {}
+    if not m:
+        mark("sec", False, err="SEC 종목코드 표 받기 실패")
+    return m
 
 
 def sec(stock, ciks):

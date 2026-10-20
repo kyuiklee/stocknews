@@ -14,7 +14,7 @@
   "use_sec": true,
 
   "sec_forms": ["8-K", "10-Q", "10-K", "6-K", "S-1", "S-3", "424B2", "424B3", "424B5", "SC 13D", "SC 13G", "SC 13D/A", "SC 13G/A", "DEF 14A"],
-  "sec_user_agent": "StockNews personal research app (github.com/kyuiklee/stocknews)",
+  "sec_user_agent": "StockNews personal app kyuiklee@gmail.com",
 
   "exclude_words": ["[포토]", "[사진]", "[인사]", "[부고]", "[게시판]"]
 }
