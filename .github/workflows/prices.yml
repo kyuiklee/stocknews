@@ -1,0 +1,70 @@
+name: 시세만 갱신
+
+on:
+  schedule:
+    # UTC 기준. 국내 장중(09:20~15:20 KST) 매시, 미국 장중(23:40~05:40 KST) 매시
+    - cron: "20 0-6 * * 1-5"
+    - cron: "40 14-20 * * 1-5"
+  workflow_dispatch: {}     # 앱의 '지금 시세 받기' 버튼
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: engine/requirements.txt
+
+      - run: pip install -r engine/requirements.txt
+
+      - name: 시세 캐시 복원
+        uses: actions/cache/restore@v4
+        with:
+          path: cache
+          key: news-${{ github.run_id }}
+          restore-keys: news-
+
+      - name: 시세 받기
+        run: python engine/prices_only.py
+
+      - name: 캐시 저장
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: cache
+          key: news-${{ github.run_id }}
+
+      - name: 앱 버전 표시
+        run: |
+          V=${GITHUB_SHA::7}
+          sed -i "s/pf.js?v=[A-Za-z0-9]*/pf.js?v=$V/; s/const APPV='[A-Za-z0-9]*'/const APPV='$V'/" site/index.html
+          echo "{\"v\":\"$V\"}" > site/version.json
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
