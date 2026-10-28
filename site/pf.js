@@ -643,11 +643,19 @@ async function pxNow(){
   pxReq={at:Date.now()}; pfDraw();
   try{
     const r=await api('actions/workflows/prices.yml/dispatches',{method:'POST',body:JSON.stringify({ref:'main'})});
-    if(r.status===403||r.status===404) throw new Error('perm');
-    if(r.status===401) throw new Error('GitHub 토큰이 만료됐거나 잘못됐습니다. 관심 목록 아래 GitHub 연결에서 새 토큰을 넣어 주세요.');
-    if(!r.ok) throw new Error('실행 요청 실패 (HTTP '+r.status+')');
+    if(!r.ok){
+      let msg='';try{msg=(await r.json()).message||'';}catch(e){}
+      // 원인 구분: 저장소 읽기(Contents)와 Actions 읽기가 되는지 따로 확인
+      const [c,a]=await Promise.all([api('contents/stocks.json').then(x=>x.status).catch(()=>0),api('actions/workflows/prices.yml').then(x=>x.status).catch(()=>0)]);
+      let why;
+      if(r.status===401) why='GitHub 토큰이 만료됐거나 잘못됐습니다. 관심 목록 아래 GitHub 연결에서 새 토큰을 넣어 주세요.';
+      else if(c!==200) why='이 토큰으로는 stocknews 저장소에 접근하지 못합니다. 토큰의 Repository access에 stocknews가 선택돼 있는지 확인해 주세요.';
+      else if(a!==200) why='토큰에 <b>Actions</b> 권한이 아직 없습니다 (Actions 읽기 확인 결과 '+a+'). 앱에 넣은 토큰과 수정한 토큰이 같은지, 권한을 고친 뒤 <b>Update</b>를 눌러 저장했는지 확인해 주세요.';
+      else why='Actions는 <b>읽기만</b> 허용돼 있습니다. 토큰 Edit → Repository permissions → Actions를 <b>Read and write</b>로 바꿔 저장해 주세요.';
+      throw new Error(`${why}<br><span class="mute" style="font-size:12px">GitHub 응답: HTTP ${r.status}${msg?' · '+esc(msg):''}</span>`);
+    }
   }catch(e){
-    pxReq.err=e.message==='perm'?`토큰에 <b>Actions</b> 권한이 없어 시세 수집을 실행하지 못했습니다.<br>GitHub → Settings → Developer settings → Fine-grained tokens → 지금 쓰는 토큰 → <b>Edit</b> → Repository permissions에서 <b>Actions: Read and write</b>를 추가하고 저장해 주세요 (토큰 값은 그대로라 앱에 다시 넣을 필요 없음).`:esc(e.message);
+    pxReq.err=(e.message||String(e))+'<br>급할 때는 GitHub 앱 → stocknews → Actions → <b>시세만 갱신</b> → Run workflow로도 바로 받을 수 있습니다.';
     pfDraw(); return;
   }
   const tick=setInterval(()=>{if(view==='manage'&&pfSeg==='asset'){const el=$('#pxNow');if(el)el.closest('.pxbar').querySelector('span').innerHTML=`시세 기준 <b>${pxTime()}</b> · 받는 중 ${Math.round((Date.now()-pxReq.at)/1000)}초`;}},1000);
