@@ -122,13 +122,14 @@ function fv(v,suf,d=1){return v==null||!isFinite(v)?'-':(+v).toFixed(d)+suf;}
 
 /* ---------- 자산 ---------- */
 function drawAsset(el,R,p){
-  if(!R||!R.now){el.innerHTML=`<div class="empty">아직 기록이 없습니다.<br><b>기록</b>에서 매수 내역과 입금(원금)을 넣으면 비중·수익률이 계산됩니다.</div>${pfMissing([])}`;bindMissing(el);return;}
+  if(!R||!R.now){el.innerHTML=`<div class="empty">아직 기록이 없습니다.<br><b>기록</b>에서 매수 내역과 입금(원금)을 넣으면 비중·수익률이 계산됩니다.</div>`;return;}
   const N=R.now, prev=R.rows.length>1?R.rows[R.rows.length-2]:null, pl=N.V-N.P, ret=N.P>0?pl/N.P:null;
   const dayPl=prev?N.pl:0, dayR=N.r;
   let h=`<div class="hero2"><div class="lbl">총 평가액</div><div class="big2">${KRW(N.V)}</div>
     <div class="l2 ${sgnCls(pl)}">원금 대비 <b>${pl>=0?'+':''}${KRW(pl)}</b> (${PCT(ret)})</div>
     <div class="sum3"><div>원금<b>${KRWs(N.P)}</b></div><div>오늘<b class="${sgnCls(dayPl)}">${dayPl>=0?'+':''}${KRWs(dayPl)}</b><small class="${sgnCls(dayR)}">${PCT(dayR)}</small></div><div>주식·ETF<b>${KRWs(N.S)}</b></div></div></div>`;
   if(R.warn.length) h+=`<div class="warn">${R.warn.slice(0,3).map(esc).join('<br>')}</div>`;
+  h+=syncBanner(R);
   // 비중
   const items=R.hold.filter(x=>x.val!=null).map(x=>({k:x.k,name:nameOf(x.k),val:x.val,sec:pfSectorOf(x.k)}));
   if(N.C>0.5) items.push({k:'cash',name:'예수금',val:N.C,sec:'현금성'});
@@ -162,12 +163,11 @@ function drawAsset(el,R,p){
     h+=`<h2 class="sec-title">현금·기타 자산</h2><div class="list">${N.C>0.5?`<div class="row"><div><div class="nm2">증권계좌 예수금</div><div class="sub">입금·매매 기록으로 계산</div></div><span></span><b>${KRWs(N.C)}원</b></div>`:''}
       ${R.others.map(o=>{const g=(+o.last.val)-(+o.last.prin||0);return `<div class="row"><div><div class="nm2">${esc(o.name)} <span class="mute" style="font-size:12px">${esc(o.type)}</span></div><div class="sub">${md(o.last.d)} 기준 · 납입 ${KRWs(+o.last.prin||0)}원${+o.last.prin?` · <span class="${sgnCls(g)}">${g>=0?'+':''}${KRWs(g)}원</span>`:''}</div></div><span></span><b>${KRWs(+o.last.val)}원</b></div>`;}).join('')}</div>`;
   }
-  h+=pfMissing(R.hold.map(x=>x.k));
   h+=`<p class="note">시세는 하루 4번 받습니다(국내 장중에는 수집 시점 가격). 미국 종목은 그날 원/달러 환율로 바꿔 더합니다. PER·PBR·배당·ROE는 네이버 증권(국내)·야후 파이낸스(미국) 기준이고, 해자는 Claude가 ${esc(MO?.asof||'')} 기준으로 정리한 정성 의견입니다. 투자 권유가 아닙니다.</p>`;
   el.innerHTML=h;
   $$('#pfAllocSeg button').forEach(b=>b.onclick=()=>{pfAlloc=b.dataset.v;store.set('pfAlloc',pfAlloc);pfDraw();});
   $$('[data-hk]').forEach(b=>b.onclick=()=>{pfOpen[b.dataset.hk]=!pfOpen[b.dataset.hk];pfDraw();});
-  bindMissing(el);
+  bindSync(el);
 }
 function pfMissing(have){
   const miss=(D?.stocks||[]).filter(s=>s.group==='portfolio'&&!have.includes(s.id));
@@ -343,11 +343,12 @@ function drawRecord(el,p,R){
       if(!(qty>0)){m.textContent='수량을 넣어 주세요.';$('#rQty').focus();return;}
       if(!(px>0)){m.textContent='가격을 넣어 주세요.';$('#rPx').focus();return;}
       const t={id:uid(),d,k,name,side:recKind,q:qty,p:px,fee}; if(isUS(k)&&fx>0) t.fx=fx;
+      if(sel.value==='__new'&&rTrack==='prices') t.track='prices';
       q.trades.push(t); pfSet(q);
       m.className='msg ok'; m.textContent=`${d} ${name} ${qty}주 ${recKind==='B'?'매수':'매도'} 기록을 넣었습니다.`;
-      if(sel.value==='__new'&&!series(k)) await addTicker(k,name,rTrack,m);
+      if(sel.value==='__new'&&!series(k)){ if(rTrack==='prices') await addTicker(k,name,'prices',m); else if(!store.get('pfSync',false)) await addTicker(k,name,'portfolio',m); }
       $('#rQty').value='';$('#rPx').value='';$('#rFee').value='';
-      setTimeout(pfDraw,1200);
+      setTimeout(()=>{pfDraw();pfAutoSync();},1200);
     }else if(recKind==='oth'){
       let id=oSel.value, o;
       if(id==='__new'){const name=$('#oName').value.trim();if(!name){m.textContent='자산 이름을 넣어 주세요.';return;}o={id:uid(),name,type:$('#oType').value,snaps:[]};q.others.push(o);}
@@ -368,14 +369,14 @@ function drawRecord(el,p,R){
     if(t==='t') q.trades=q.trades.filter(x=>x.id!==id);
     else if(t==='f') q.flows=q.flows.filter(x=>x.id!==id);
     else {const o=q.others.find(x=>x.id===id); if(o){o.snaps=o.snaps.filter(s=>s.id!==sid); if(!o.snaps.length) q.others=q.others.filter(x=>x.id!==id);}}
-    pfSet(q); pfDraw();
+    pfSet(q); pfDraw(); if(t==='t') pfAutoSync();
   });
   // 백업
   $('#bkOut').onclick=()=>{const blob=new Blob([JSON.stringify(pfGet(),null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`내자산-기록-${today()}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);};
   $('#bkIn').onclick=()=>$('#bkFile').click();
   $('#bkFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;const m=$('#bkMsg');
     try{const j=JSON.parse(await f.text());if(!Array.isArray(j.trades))throw new Error('기록 파일이 아닙니다');
-      pfSet({v:1,auto:j.auto!==false,trades:j.trades,flows:j.flows||[],others:j.others||[]});pfDraw();const m2=$('#bkMsg');m2.className='msg ok';m2.textContent=`가져왔습니다: 매매 ${j.trades.length}건, 입출금 ${(j.flows||[]).length}건, 기타 자산 ${(j.others||[]).length}개`;}
+      pfSet({v:1,auto:j.auto!==false,trades:j.trades,flows:j.flows||[],others:j.others||[]});pfDraw();pfAutoSync();const m2=$('#bkMsg');m2.className='msg ok';m2.textContent=`가져왔습니다: 매매 ${j.trades.length}건, 입출금 ${(j.flows||[]).length}건, 기타 자산 ${(j.others||[]).length}개`;}
     catch(err){m.className='msg err';m.textContent='가져오기 실패: '+err.message;}};
   $('#bkClr').onclick=()=>{const b=$('#bkClr');if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='정말 모두 지우기';return;}pfSet({v:1,auto:true,trades:[],flows:[],others:[]});pfDraw();};
 }
@@ -394,6 +395,72 @@ async function addTicker(k,name,group,m){
     }
     m.innerHTML+=`<br>${esc(name)}을(를) ${group==='prices'?'시세 추적':'보유 종목'}에 추가했습니다. 2~3분 뒤 시세가 반영됩니다.`;
   }catch(e){m.innerHTML+=`<br>시세 추적 추가 실패(${esc(e.message||e)}) — 목록 탭에서 직접 추가해 주세요.`;}
+}
+
+
+/* ---------- 보유 목록 동기화: 자산 기록 → stocks.json 의 portfolio (종목 이름·코드만, 수량·금액은 올리지 않음) ---------- */
+let pfSyncMsg='', pfSyncBusy=false; const pfSyncTried={};
+function priceOnlySet(){const ids=new Set((D?.stocks||[]).map(s=>s.id));return new Set(Object.keys(PX?.px||{}).filter(k=>!ids.has(k)));}
+function pfDiff(R){
+  const po=priceOnlySet(), p=pfGet();
+  const held=(R?.hold||[]).map(h=>h.k).filter(k=>!po.has(k)&&!p.trades.some(t=>t.k===k&&t.track==='prices'));
+  const cur=(D?.stocks||[]).filter(s=>s.group==='portfolio').map(s=>s.id);
+  return {held,add:held.filter(k=>!cur.includes(k)),rem:cur.filter(k=>!held.includes(k))};
+}
+async function pfSync(moveToWatch){
+  if(pfSyncBusy) return; if(!token()){pfSyncMsg='notoken';return;}
+  pfSyncBusy=true; pfSyncMsg='busy';
+  try{
+    const R=pfCalc(pfGet()), {held}=pfDiff(R);
+    for(let attempt=0;attempt<2;attempt++){
+      const r=await api('contents/stocks.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status);
+      const j=await r.json(), obj=JSON.parse(b64dec(j.content)); obj.portfolio=obj.portfolio||[]; obj.watch=obj.watch||[];
+      const kOf=x=>`${(x.market||'KR').toUpperCase()}:${(x.code||'').toUpperCase()}`;
+      const nn=v=>String(v||'').replace(/\s/g,'').toUpperCase();
+      const same=(x,k)=>kOf(x)===k||(!x.code&&(x.market||'KR').toUpperCase()===k.split(':')[0]&&nn(x.name)===nn(nameOf(k)));   // 코드 없이 이름만 적힌 항목
+      const po=new Set((obj.prices||[]).map(kOf)), want=held.filter(k=>!po.has(k));
+      const before=JSON.stringify(obj);
+      const pick=k=>{const e=obj.portfolio.find(x=>same(x,k))||obj.watch.find(x=>same(x,k));
+        return e?{...e,code:k.split(':')[1]}:{market:k.split(':')[0],name:nameOf(k),code:k.split(':')[1]};};
+      const dropped=obj.portfolio.filter(x=>!want.some(k=>same(x,k)));
+      obj.portfolio=want.map(pick);
+      obj.watch=obj.watch.filter(x=>!want.some(k=>same(x,k)));
+      if(moveToWatch) dropped.forEach(x=>{if(!obj.watch.some(w=>kOf(w)===kOf(x)))obj.watch.push(x);});
+      if(JSON.stringify(obj)===before){pfSyncMsg='same';break;}
+      const w=await api('contents/stocks.json',{method:'PUT',body:JSON.stringify({message:'보유 종목을 자산 기록 기준으로 맞춤 (앱에서)',content:b64enc(JSON.stringify(obj,null,2)+'\n'),sha:j.sha})});
+      if(w.status===409||w.status===422) continue;
+      if(!w.ok) throw new Error(w.status===401||w.status===403?'토큰 권한 없음':'HTTP '+w.status);
+      // 화면에 바로 반영 (다음 수집 전까지는 뉴스가 비어 있을 수 있음)
+      const ids=new Set(want);
+      D&&D.stocks.forEach(s=>{if(s.group==='portfolio'&&!ids.has(s.id)) s.group=moveToWatch?'watch':'gone'; else if(ids.has(s.id)) s.group='portfolio';});
+      want.forEach(k=>{if(D&&!D.stocks.some(s=>s.id===k)){const [m,c]=k.split(':');const s={id:k,group:'portfolio',market:m,name:nameOf(k),code:c};D.stocks.push(s);D._sid[k]=s;}});
+      if(D) D.stocks=D.stocks.filter(s=>s.group!=='gone');
+      WORK=null; pfSyncMsg='done'; break;
+    }
+  }catch(e){pfSyncMsg='err:'+(e.message||e);}
+  pfSyncBusy=false;
+  if(view==='manage') pfDraw();
+}
+function pfAutoSync(){ if(store.get('pfSync',false)&&token()) pfSync(store.get('pfSyncMove',true)); }   // 다 판 종목은 처음 고른 방식대로 (관심으로 옮기기/지우기)
+function syncBanner(R){
+  const p=pfGet(); if(!p.trades.length) return '';
+  const {add,rem}=pfDiff(R), on=store.get('pfSync',false);
+  const nm=ks=>ks.map(k=>esc(nameOf(k))).join(', ');
+  if(pfSyncMsg==='busy') return '<div class="note">보유 목록을 맞추는 중…</div>';
+  if(pfSyncMsg==='done'){pfSyncMsg='';return '<div class="msg ok" style="margin:8px 2px">보유 목록을 자산 기준으로 맞췄습니다. 2~3분 뒤 수집부터 보유 뉴스에 반영됩니다.</div>';}
+  if(pfSyncMsg.startsWith('err:')) return `<div class="warn">보유 목록 맞추기 실패: ${esc(pfSyncMsg.slice(4))}</div>`;
+  if(!add.length&&!rem.length) return '';
+  if(!token()) return `<div class="warn">보유 뉴스는 자산 기록 기준으로 자동으로 맞춰집니다. <b>관심 목록</b> 아래의 GitHub 연결을 한 번 해 주세요.${add.length?`<br>추가될 종목: ${nm(add)}`:''}</div>`;
+  if(on){ const sig=add.join()+'|'+rem.join(); if(!pfSyncTried[sig]){pfSyncTried[sig]=1;setTimeout(()=>pfSync(store.get('pfSyncMove',true)),0);} return ''; }
+  return `<div class="form" style="margin-top:10px"><b>보유 뉴스 목록을 자산 기준으로 맞출까요?</b>
+    <p class="note">${add.length?`추가: ${nm(add)}<br>`:''}${rem.length?`빠짐: ${nm(rem)} <span class="mute">(매수 기록이 없거나 다 판 종목)</span>`:''}</p>
+    <div class="btns">${rem.length?'<button class="btn pri" id="syW">빠질 종목은 관심으로 옮기고 맞추기</button><button class="btn" id="syD">빠질 종목은 지우고 맞추기</button>':'<button class="btn pri" id="syD">맞추기</button>'}</div>
+    <p class="note">한 번 맞추면 이후 매수·매도 기록을 넣을 때마다 자동으로 맞춰지고, 다 판 종목은 여기서 고른 방식대로 처리합니다. 서버에는 종목 이름과 코드만 올라갑니다.</p></div>`;
+}
+function bindSync(el){
+  const go=mv=>{store.set('pfSync',true);store.set('pfSyncMove',mv);pfSync(mv);};
+  el.querySelector('#syW')&&(el.querySelector('#syW').onclick=()=>go(true));
+  el.querySelector('#syD')&&(el.querySelector('#syD').onclick=()=>go(false));
 }
 
 /* ---------- 화면 ---------- */

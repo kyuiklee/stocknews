@@ -328,24 +328,20 @@ nav .nb{position:absolute;top:0;left:calc(50% + 8px);font-size:10px;font-weight:
   <!-- ===== 종목 관리 ===== -->
   <section class="view" id="v-manage" aria-label="내 자산과 종목 관리">
     <div class="ctl" style="margin-top:6px"><div class="seg" role="group" aria-label="보기" id="mgSeg">
-      <button data-v="asset" aria-pressed="true">자산</button><button data-v="ret" aria-pressed="false">수익률</button><button data-v="rec" aria-pressed="false">기록</button><button data-v="list" aria-pressed="false">종목 목록</button>
+      <button data-v="asset" aria-pressed="true">자산</button><button data-v="ret" aria-pressed="false">수익률</button><button data-v="rec" aria-pressed="false">기록</button><button data-v="list" aria-pressed="false">관심 목록</button>
     </div></div>
     <div id="mg-asset"></div><div id="mg-ret" hidden></div><div id="mg-rec" hidden></div>
     <div id="mg-list" hidden>
-    <h2 class="sec-title">보유 종목 <span class="mute" id="cntP" style="font-size:14px"></span></h2>
-    <div class="list" id="listP"></div>
+    <p class="note" style="margin-top:2px">보유 종목은 <b>자산</b>의 매매 기록을 기준으로 자동으로 맞춰집니다. 여기서는 관심 종목만 관리합니다.</p>
     <h2 class="sec-title">관심 종목 <span class="mute" id="cntW" style="font-size:14px"></span></h2>
     <div class="list" id="listW"></div>
 
     <div id="savebar"></div>
 
-    <h2 class="sec-title">종목 추가</h2>
+    <h2 class="sec-title">관심 종목 추가</h2>
     <div class="form">
-      <div class="seg" role="group" aria-label="구분" id="fGroup">
-        <button data-v="portfolio" aria-pressed="true">보유 종목</button>
-        <button data-v="watch" aria-pressed="false">관심 종목</button>
-      </div>
-      <div class="seg" role="group" aria-label="시장" id="fMkt" style="margin-top:8px">
+      
+      <div class="seg" role="group" aria-label="시장" id="fMkt">
         <button data-v="KR" aria-pressed="true">국내</button>
         <button data-v="US" aria-pressed="false">미국</button>
       </div>
@@ -357,7 +353,7 @@ nav .nb{position:absolute;top:0;left:calc(50% + 8px);font-size:10px;font-weight:
       <div class="btns"><button class="btn pri" id="fAdd">목록에 추가</button></div>
       <div class="msg" id="fMsg"></div>
     </div>
-    <p class="note">추가·삭제·이동한 뒤 <b>변경 저장</b>을 누르면 GitHub 저장소의 목록이 바뀌고, 2~3분 뒤 새 종목의 뉴스가 바로 수집됩니다.</p>
+    <p class="note">추가·삭제한 뒤 <b>변경 저장</b>을 누르면 2~3분 뒤 새 관심 종목의 뉴스가 바로 수집됩니다. 관심 종목을 사면(자산 기록에 매수) 자동으로 보유로 옮겨집니다.</p>
 
     <details class="box" id="tokBox">
       <summary>GitHub 연결 <span class="mute" id="tokState" style="font-weight:500;font-size:13px"></span></summary>
@@ -491,7 +487,7 @@ function drawFeed(){
   if(!D){el.innerHTML='<div class="empty">아직 수집된 뉴스가 없습니다. 첫 수집이 끝나면 여기에 보입니다.</div>';return;}
   const group=view, sts=stocksOf(group);
   if(!sts.length){
-    el.innerHTML=`<div class="empty">${group==='watch'?'관심 종목이 아직 없습니다.<br>아래 <b>종목</b> 탭에서 추가하면 다음 수집부터 모아 드립니다.':'보유 종목이 없습니다. <b>종목</b> 탭에서 추가해 주세요.'}</div>`;return;}
+    el.innerHTML=`<div class="empty">${group==='watch'?'관심 종목이 아직 없습니다.<br><b>종목 → 관심 목록</b>에서 추가하면 다음 수집부터 모아 드립니다.':'보유 종목이 없습니다. <b>종목 → 기록</b>에서 매수 기록을 넣으면 자동으로 보유 뉴스가 모입니다.'}</div>`;return;}
   const ids=new Set(sts.map(s=>s.id));
   const all=D.items.filter(it=>ids.has(it.sid));
   const items=all.filter(pass);
@@ -552,18 +548,16 @@ async function loadList(){
 const keyOf=s=>`${(s.market||'KR').toUpperCase()}:${(s.code||s.name||'').toUpperCase()}`;
 function collected(s){const k=keyOf(s);return (D?.stocks||[]).some(x=>x.id.toUpperCase()===k || (x.market===(s.market||'KR')&&x.name===s.name));}
 function rowHtml(s,g,i){
-  const other=g==='portfolio'?'관심으로':'보유로';
   return `<div class="row"><div><div class="nm2">${esc(s.name||s.code)}</div>
     <div class="sub">${s.market==='US'?'미국':'국내'} · ${esc(s.code||'코드 자동')}${s.en?' · '+esc(s.en):''} ${collected(s)?'':'<span class="new">· 다음 수집부터</span>'}</div></div>
-    <button class="btn sm" data-mv="${g}:${i}">${other}</button><button class="btn sm del" data-rm="${g}:${i}" aria-label="${esc(s.name)} 삭제">삭제</button></div>`;
+    <span></span><button class="btn sm del" data-rm="${g}:${i}" aria-label="${esc(s.name)} 삭제">삭제</button></div>`;
 }
 function drawManage(){
   if(!WORK) return;
-  for(const [g,el,cnt] of [['portfolio','#listP','#cntP'],['watch','#listW','#cntW']]){
+  for(const [g,el,cnt] of [['watch','#listW','#cntW']]){
     $(el).innerHTML=WORK[g].length?WORK[g].map((s,i)=>rowHtml(s,g,i)).join(''):'<div class="empty" style="border-radius:0">비어 있음</div>';
     $(cnt).textContent=WORK[g].length+'개';
   }
-  $$('[data-mv]').forEach(b=>b.onclick=()=>{const [g,i]=b.dataset.mv.split(':');const s=WORK[g].splice(+i,1)[0];WORK[g==='portfolio'?'watch':'portfolio'].push(s);drawManage();});
   $$('[data-rm]').forEach(b=>b.onclick=()=>{const [g,i]=b.dataset.rm.split(':');WORK[g].splice(+i,1);drawManage();});
   const dirty=JSON.stringify(WORK)!==JSON.stringify(ORIG);
   $('#savebar').innerHTML=(dirty?`<div class="savebar"><span>저장 안 한 변경 있음</span><button class="btn ghost" id="undo">되돌리기</button><button class="btn" id="save">변경 저장</button></div>`:'')
@@ -591,9 +585,8 @@ async function save(){
     drawManage(); const m=$('#saveMsg'); m.className='msg err'; m.textContent='저장 실패: '+(e.message||e);
   }
 }
-let fGroup='portfolio', fMkt='KR';
+let fGroup='watch', fMkt='KR';
 function setSeg(sel,v){$$(sel+' button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v));}
-$$('#fGroup button').forEach(b=>b.onclick=()=>{fGroup=b.dataset.v;setSeg('#fGroup',fGroup);});
 $$('#fMkt button').forEach(b=>b.onclick=()=>{fMkt=b.dataset.v;setSeg('#fMkt',fMkt);
   $('#fCodeL').textContent=fMkt==='KR'?'종목코드 (비우면 자동)':'티커 (필수)';
   $('#fCode').placeholder=fMkt==='KR'?'예: 005930':'예: NVDA'; $('#fName').placeholder=fMkt==='KR'?'예: 삼성전자':'예: 엔비디아';
@@ -613,7 +606,7 @@ $('#fAdd').onclick=()=>{
   for(const g of ['portfolio','watch']) if(WORK[g].some(x=>keyOf(x)===k||(x.market===s.market&&x.name&&x.name===s.name))){msg.textContent=`이미 ${g==='portfolio'?'보유':'관심'} 목록에 있습니다.`;return;}
   WORK[fGroup].push(s);
   $('#fName').value='';$('#fCode').value='';$('#fEn').value='';
-  msg.className='msg ok'; msg.textContent=`${s.name}을(를) ${fGroup==='portfolio'?'보유':'관심'} 목록에 넣었습니다. 위의 변경 저장을 눌러 주세요.`;
+  msg.className='msg ok'; msg.textContent=`${s.name}을(를) 관심 목록에 넣었습니다. 위의 변경 저장을 눌러 주세요.`;
   drawManage();
 };
 $('#tokSave').onclick=async()=>{
