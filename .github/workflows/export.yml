@@ -14,7 +14,7 @@ jobs:
       - name: 앱 데이터 받기
         run: |
           mkdir out && cd out
-          for f in news.json disc.json; do
+          for f in news.json disc.json market.json prices.json; do
             curl -sfL "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/data/$f?t=$(date +%s)" -o "$f"
           done
           ls -la

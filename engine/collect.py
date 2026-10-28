@@ -188,6 +188,20 @@ def load_stocks():
     return final
 
 
+def load_price_only():
+    """stocks.json 의 prices: 뉴스는 모으지 않고 시세만 받는 종목 (ETF 등, 매매 기록에서 추가)"""
+    j = json.load(open(os.path.join(ROOT, "stocks.json"), encoding="utf-8"))
+    out = []
+    for s in j.get("prices") or []:
+        s = {"market": (s.get("market") or "KR").upper(), "name": (s.get("name") or "").strip(),
+             "code": (s.get("code") or "").strip().upper(), "group": "prices"}
+        if s["market"] == "KR" and not re.fullmatch(r"[0-9A-Z]{6}", s["code"]):
+            s["code"] = (krx_listing() or {}).get(re.sub(r"\s", "", s["name"]).upper(), "")
+        if s["code"]:
+            out.append(s)
+    return out
+
+
 def krx_listing():
     def load():
         m = {}
@@ -610,6 +624,13 @@ def main():
     print(f"새 기사 {added}건, 전체 {len(items)}건, {time.time() - t0:.0f}초")
     for k, v in STATUS.items():
         print(f"  {k}: 성공 {v['ok']} 실패 {v['fail']} 기사 {v['items']}" + (f" ({v['err']})" if v["err"] else ""))
+    try:                                            # 시세·재무 지표 (보유·관심 + 가격만 추적하는 ETF 등)
+        import market
+        market.run(stocks + load_price_only(), NOW)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"시세·지표 실패: {e}")
     try:                                            # 자사주·투자자문 공시 (실패해도 뉴스는 배포)
         import disclosures
         disclosures.run(dart_key, NOW)

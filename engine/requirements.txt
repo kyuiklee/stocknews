@@ -1,3 +1,5 @@
 requests
 finance-datareader
 pykrx
+yfinance
+pandas
