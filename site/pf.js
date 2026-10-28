@@ -134,7 +134,7 @@ function drawAsset(el,R,p){
   const dayPl=prev?N.pl:0, dayR=N.r;
   let h=`<div class="hero2"><div class="lbl">총 평가액</div><div class="big2">${KRW(N.V)}</div>
     <div class="l2 ${sgnCls(pl)}">원금 대비 <b>${pl>=0?'+':''}${KRW(pl)}</b> (${PCT(ret)})</div>
-    <div class="sum3"><div>원금<b>${KRWs(N.P)}</b></div><div>오늘<b class="${sgnCls(dayPl)}">${dayPl>=0?'+':''}${KRWs(dayPl)}</b><small class="${sgnCls(dayR)}">${PCT(dayR)}</small></div><div>주식·ETF<b>${KRWs(N.S)}</b></div></div></div>`;
+    <div class="sum3"><div>원금<b>${KRWs(N.P)}</b></div><div>오늘${prev&&prev.V>0?`<b class="${sgnCls(dayPl)}">${dayPl>=0?'+':''}${KRWs(dayPl)}</b><small class="${sgnCls(dayR)}">${PCT(dayR)}</small>`:'<b>-</b><small class="mute">오늘 첫 기록</small>'}</div><div>주식·ETF<b>${KRWs(N.S)}</b></div></div></div>`;
   if(R.warn.length) h+=`<div class="warn">${R.warn.slice(0,3).map(esc).join('<br>')}</div>`;
   const wait=R.hold.filter(x=>x.est);
   if(wait.length) h+=`<div class="warn">${wait.map(x=>esc(nameOf(x.k))).join(', ')}: 아직 시세를 받지 않아 마지막 매수가로 계산했습니다. ${token()?'다음 수집(몇 분) 뒤 자동으로 바뀝니다.':'<b>관심 목록</b> 아래 GitHub 연결을 하면 시세 추적에 자동으로 추가됩니다.'}</div>`;
@@ -538,7 +538,7 @@ async function addTicker(k,name,group,m){
   const [mkt,code]=k.split(':');
   if(!token()){m.innerHTML+='<br>이 종목은 아직 시세를 받지 않습니다. <b>목록</b>의 GitHub 연결을 하면 자동으로 시세 추적에 추가됩니다.';return;}
   try{
-    const r=await api('contents/stocks.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status);
+    const r=await api('contents/stocks.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) throw new Error(ghErrText(r.status));
     const j=await r.json(), obj=JSON.parse(b64dec(j.content));
     const has=g=>(obj[g]||[]).some(s=>(s.market||'KR')===mkt&&(s.code||'').toUpperCase()===code);
     if(!has('portfolio')&&!has('watch')&&!has('prices')){
@@ -562,18 +562,22 @@ function pfDiff(R){
   const cur=(D?.stocks||[]).filter(s=>s.group==='portfolio').map(s=>s.id);
   return {held,add:held.filter(k=>!cur.includes(k)),rem:cur.filter(k=>!held.includes(k))};
 }
+function pfRetry(){pfSyncMsg='';for(const k in pfSyncTried)delete pfSyncTried[k];if(store.get('pfSync',false))pfSync(store.get('pfSyncMove',true));}
 async function pfSync(moveToWatch){
   if(pfSyncBusy) return; if(!token()){pfSyncMsg='notoken';return;}
   pfSyncBusy=true; pfSyncMsg='busy';
   try{
     const R=pfCalc(pfGet()), {held}=pfDiff(R);
     for(let attempt=0;attempt<2;attempt++){
-      const r=await api('contents/stocks.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status);
-      const j=await r.json(), obj=JSON.parse(b64dec(j.content)); obj.portfolio=obj.portfolio||[]; obj.watch=obj.watch||[];
+      const r=await api('contents/stocks.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) throw new Error(ghErrText(r.status));
+      const j=await r.json(), obj=JSON.parse(b64dec(j.content)); obj.portfolio=obj.portfolio||[]; obj.watch=obj.watch||[]; obj.prices=obj.prices||[];
       const kOf=x=>`${(x.market||'KR').toUpperCase()}:${(x.code||'').toUpperCase()}`;
       const nn=v=>String(v||'').replace(/\s/g,'').toUpperCase();
       const same=(x,k)=>kOf(x)===k||(!x.code&&(x.market||'KR').toUpperCase()===k.split(':')[0]&&nn(x.name)===nn(nameOf(k)));   // 코드 없이 이름만 적힌 항목
       const po=new Set((obj.prices||[]).map(kOf)), want=held.filter(k=>!po.has(k));
+      const P0=pfGet(), allHeld=(R?.hold||[]).map(h=>h.k);
+      allHeld.filter(k=>!want.includes(k)&&!po.has(k)&&!obj.portfolio.some(x=>kOf(x)===k)&&!obj.watch.some(x=>kOf(x)===k))
+        .forEach(k=>obj.prices.push({market:k.split(':')[0],name:nameOf(k),code:k.split(':')[1]}));   // ETF 등 시세만 추적
       const before=JSON.stringify(obj);
       const pick=k=>{const e=obj.portfolio.find(x=>same(x,k))||obj.watch.find(x=>same(x,k));
         return e?{...e,code:k.split(':')[1]}:{market:k.split(':')[0],name:nameOf(k),code:k.split(':')[1]};};
@@ -584,7 +588,7 @@ async function pfSync(moveToWatch){
       if(JSON.stringify(obj)===before){pfSyncMsg='same';break;}
       const w=await api('contents/stocks.json',{method:'PUT',body:JSON.stringify({message:'보유 종목을 자산 기록 기준으로 맞춤 (앱에서)',content:b64enc(JSON.stringify(obj,null,2)+'\n'),sha:j.sha})});
       if(w.status===409||w.status===422) continue;
-      if(!w.ok) throw new Error(w.status===401||w.status===403?'토큰 권한 없음':'HTTP '+w.status);
+      if(!w.ok) throw new Error(ghErrText(w.status));
       // 화면에 바로 반영 (다음 수집 전까지는 뉴스가 비어 있을 수 있음)
       const ids=new Set(want);
       D&&D.stocks.forEach(s=>{if(s.group==='portfolio'&&!ids.has(s.id)) s.group=moveToWatch?'watch':'gone'; else if(ids.has(s.id)) s.group='portfolio';});
@@ -596,6 +600,7 @@ async function pfSync(moveToWatch){
   pfSyncBusy=false;
   if(view==='manage') pfDraw();
 }
+function ghErrText(st){return st===401?'GitHub 토큰이 만료됐거나 잘못됐습니다':st===403||st===404?'토큰에 stocknews 저장소 쓰기 권한이 없습니다':'HTTP '+st;}
 function pfAutoSync(){ if(store.get('pfSync',false)&&token()) pfSync(store.get('pfSyncMove',true)); }   // 다 판 종목은 처음 고른 방식대로 (관심으로 옮기기/지우기)
 function syncBanner(R){
   const p=pfGet(); if(!p.trades.length) return '';
@@ -603,7 +608,8 @@ function syncBanner(R){
   const nm=ks=>ks.map(k=>esc(nameOf(k))).join(', ');
   if(pfSyncMsg==='busy') return '<div class="note">보유 목록을 맞추는 중…</div>';
   if(pfSyncMsg==='done'){pfSyncMsg='';return '<div class="msg ok" style="margin:8px 2px">보유 목록을 자산 기준으로 맞췄습니다. 2~3분 뒤 수집부터 보유 뉴스에 반영됩니다.</div>';}
-  if(pfSyncMsg.startsWith('err:')) return `<div class="warn">보유 목록 맞추기 실패: ${esc(pfSyncMsg.slice(4))}</div>`;
+  if(pfSyncMsg.startsWith('err:')) return `<div class="warn">보유 목록 맞추기 실패: ${esc(pfSyncMsg.slice(4))}.<br>GitHub에서 토큰을 새로 만들어 붙여넣어 주세요 (만료일은 넉넉하게). 붙여넣으면 밀린 종목 추가와 목록 맞추기를 자동으로 다시 합니다.
+    <div class="btns"><button class="btn sm pri" id="goTok">GitHub 연결로 가기</button></div></div>`;
   if(!add.length&&!rem.length) return '';
   if(!token()) return `<div class="warn">보유 뉴스는 자산 기록 기준으로 자동으로 맞춰집니다. <b>관심 목록</b> 아래의 GitHub 연결을 한 번 해 주세요.${add.length?`<br>추가될 종목: ${nm(add)}`:''}</div>`;
   if(on){ const sig=add.join()+'|'+rem.join(); if(!pfSyncTried[sig]){pfSyncTried[sig]=1;setTimeout(()=>pfSync(store.get('pfSyncMove',true)),0);} return ''; }
@@ -613,6 +619,7 @@ function syncBanner(R){
     <p class="note">한 번 맞추면 이후 매수·매도 기록을 넣을 때마다 자동으로 맞춰지고, 다 판 종목은 여기서 고른 방식대로 처리합니다. 서버에는 종목 이름과 코드만 올라갑니다.</p></div>`;
 }
 function bindSync(el){
+  const gt=el.querySelector('#goTok'); gt&&(gt.onclick=()=>{pfSeg='list';store.set('pfSeg',pfSeg);pfDraw();setTimeout(()=>{const b=$('#tokBox');if(b){b.open=true;b.scrollIntoView({behavior:'smooth'});$('#tok').focus();}},300);});
   const go=mv=>{store.set('pfSync',true);store.set('pfSyncMove',mv);pfSync(mv);};
   el.querySelector('#syW')&&(el.querySelector('#syW').onclick=()=>go(true));
   el.querySelector('#syD')&&(el.querySelector('#syD').onclick=()=>go(false));

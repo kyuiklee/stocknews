@@ -256,7 +256,7 @@ select.inp{appearance:auto}
 /* 비중 원형 그래프 — 색은 고정 순서(검증된 범주 팔레트), 이름·%는 범례에 항상 표시 */
 :root{--p1:#2a78d6;--p2:#eb6834;--p3:#1baf7a;--p4:#eda100;--p5:#e87ba4;--p6:#008300;--p7:#6250d6;--po:#b4bcc6}
 @media (prefers-color-scheme: dark){:root{--p1:#3987e5;--p2:#d95926;--p3:#199e70;--p4:#c98500;--p5:#d55181;--p6:#008300;--p7:#9085e9;--po:#566273}}
-.pie-box{background:var(--surface);border-radius:14px;padding:14px;margin-top:8px;display:grid;grid-template-columns:192px 1fr;gap:12px;align-items:center}
+.pie-box{background:var(--surface);border-radius:14px;padding:14px;margin-top:8px;display:grid;grid-template-columns:192px 1fr;gap:12px;align-items:start}
 @media (max-width:400px){.pie-box{grid-template-columns:1fr;justify-items:center}.pie-box .lg{display:grid;grid-template-columns:1fr 1fr;column-gap:4px}}
 .pie svg{display:block}
 .pc{stroke:var(--surface);stroke-width:2;transition:opacity .15s;cursor:pointer}
@@ -661,10 +661,11 @@ $('#tokSave').onclick=async()=>{
   m.className='msg';m.textContent='확인 중…';
   try{
     const r=await api('');
-    if(!r.ok) throw new Error(r.status===401?'토큰이 틀렸거나 만료됐습니다':(r.status===404?'토큰에 이 저장소(stocknews)가 선택돼 있지 않습니다':'HTTP '+r.status));
+    if(!r.ok) throw new Error(r.status===401?'토큰이 틀렸거나 만료됐습니다 — GitHub에서 새로 만들어 주세요':(r.status===404?'토큰에 이 저장소(stocknews)가 선택돼 있지 않습니다':'HTTP '+r.status));
     const j=await r.json();
     if(j.permissions && !j.permissions.push) throw new Error('쓰기 권한이 없습니다 (Contents: Read and write)');
     $('#tok').value=''; m.className='msg ok'; m.textContent='연결됐습니다. 이제 변경 저장을 쓸 수 있습니다.'; loadList();
+    if(typeof pfRetry==='function') pfRetry();      // 밀린 보유 목록 맞추기·시세 추적 추가 다시
   }catch(e){m.className='msg err';m.textContent='연결 실패: '+(e.message||e);}
   drawManage();
 };
