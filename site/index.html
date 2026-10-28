@@ -239,6 +239,20 @@ details.box ol{font-size:13px;color:var(--sub);line-height:1.6;padding-left:18px
 .tog input{margin-right:6px;accent-color:var(--ink);transform:scale(1.15)}
 .tog small{display:block;font-size:12px;color:var(--sub);font-weight:500;margin-top:3px;margin-left:24px}
 select.inp{appearance:auto}
+.hd-a{display:flex;gap:6px;padding:0 14px 12px;margin-top:-4px}
+.hd-a .btn[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.hd-f{padding:0 14px 14px}
+.hd-f .tf .grid2 label,.hd-f .tf label{margin-top:8px}
+.sec-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sec-row .sec-title{margin-bottom:8px}
+.picked{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--track);border-radius:10px;padding:9px 10px;font-size:14.5px}
+.picked small{color:var(--sub);margin-left:2px}
+.sr{display:flex;flex-direction:column;margin-top:6px;border-radius:10px;overflow:hidden}
+.sr-i{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 10px;text-align:left;border-top:1px solid var(--line);background:var(--surface);font-size:14.5px}
+.sr-i:first-child{border-top:0}
+.sr-i small{color:var(--sub);white-space:nowrap}
+.sr-i:active{background:var(--track)}
+.tf [data-f=side]{margin-top:10px}
 /* ---------- 하단 탭 ---------- */
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
   padding:6px 0 calc(6px + env(safe-area-inset-bottom));z-index:5}

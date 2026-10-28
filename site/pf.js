@@ -114,7 +114,8 @@ function pfCalc(p){
 /* ---------- 공통 ---------- */
 function pfSectorOf(k){
   const m=MO?.items?.[k]; if(m?.sector) return m.sector;
-  const i=MK?.info?.[k]; if(/ETF|ETN/i.test(nameOf(k))) return 'ETF';
+  const i=MK?.info?.[k], nm=nameOf(k);
+  if(/ETF|ETN|^(KODEX|TIGER|KBSTAR|ACE|SOL|HANARO|ARIRANG|KOSEF|RISE|PLUS|KIWOOM|TIMEFOLIO|WON)\b/i.test(nm)||(SYM?.kr||[]).some(x=>'KR:'+x[0]===k&&x[2]==='E')||pfGet().trades.some(t=>t.k===k&&t.track==='prices')) return 'ETF';
   return i?.ind?i.ind.replace(/ 제조업$| 서비스업$|업$/,''):'기타';
 }
 function moatChip(k){const m=MO?.items?.[k];if(!m)return '';const c=m.moat==='넓음'?'buy':(m.moat==='좁음'?'trust':'neu');return `<span class="k ${c}">해자 ${esc(m.moat)}</span>`;}
@@ -122,7 +123,9 @@ function fv(v,suf,d=1){return v==null||!isFinite(v)?'-':(+v).toFixed(d)+suf;}
 
 /* ---------- 자산 ---------- */
 function drawAsset(el,R,p){
-  if(!R||!R.now){el.innerHTML=`<div class="empty">아직 기록이 없습니다.<br><b>기록</b>에서 매수 내역과 입금(원금)을 넣으면 비중·수익률이 계산됩니다.</div>`;return;}
+  if(!R||!R.now){el.innerHTML=`<div class="empty">아직 기록이 없습니다. 가진 종목의 수량과 평단가를 넣어 시작하세요.<br><span class="mute" style="font-size:12.5px">과거 매수일까지 넣고 싶으면 <b>기록</b>에서 날짜별로 넣으면 됩니다.</span></div>
+    <h2 class="sec-title">보유 종목 추가</h2><div class="form" id="pfNewTF"></div>`;
+    tradeForm($('#pfNewTF'),{mode:'set',onDone:pfDraw});return;}
   const N=R.now, prev=R.rows.length>1?R.rows[R.rows.length-2]:null, pl=N.V-N.P, ret=N.P>0?pl/N.P:null;
   const dayPl=prev?N.pl:0, dayR=N.r;
   let h=`<div class="hero2"><div class="lbl">총 평가액</div><div class="big2">${KRW(N.V)}</div>
@@ -144,7 +147,8 @@ function drawAsset(el,R,p){
     <div class="list" style="margin-top:8px">${rows.map(r=>{const w=r.val/tot;return `<div class="al"><div class="al-n">${esc(r.name)}${r.sub?`<small>${esc(r.sub)}</small>`:''}</div><div class="al-b"><i style="width:${(w/mx*100).toFixed(1)}%"></i></div><div class="al-v"><b>${(w*100).toFixed(1)}%</b><small>${KRWs(r.val)}</small></div></div>`;}).join('')}</div>`;
   // 보유 종목
   const H=[...R.hold].sort((a,b)=>(b.val||0)-(a.val||0));
-  h+=`<h2 class="sec-title">보유 종목 <span class="mute" style="font-size:14px">${H.length}개</span></h2><div class="list">`;
+  h+=`<div class="sec-row"><h2 class="sec-title">보유 종목 <span class="mute" style="font-size:14px">${H.length}개</span></h2><button class="btn sm${pfAct.__new?'':' pri'}" id="pfAddBtn">${pfAct.__new?'닫기':'+ 종목 추가'}</button></div>
+    ${pfAct.__new?'<div class="form" id="pfNewTF" style="margin-bottom:10px"></div>':''}<div class="list">`;
   h+=H.map(x=>{
     const us=isUS(x.k), info=MK?.info?.[x.k]||{}, m=MO?.items?.[x.k], gain=x.val!=null?x.val-x.cost:null, gr=x.cost>0&&gain!=null?gain/x.cost:null;
     const pxs=x.price==null?'-':(us?'$'+x.price.toFixed(2):Math.round(x.price).toLocaleString('ko-KR')+'원');
@@ -155,6 +159,8 @@ function drawAsset(el,R,p){
       <div class="hd-g"><div>평가액<b>${KRWs(x.val)}</b></div><div>비중<b>${x.val!=null?(x.val/tot*100).toFixed(1)+'%':'-'}</b></div><div>수익률<b class="${sgnCls(gr)}">${PCT(gr,1)}</b></div></div>
       <div class="l3">${(+x.q).toLocaleString('ko-KR')}주 · 평단 ${avg} · 현재 ${pxs}${gain!=null?` · <span class="${sgnCls(gain)}">${gain>=0?'+':''}${KRWs(gain)}</span>`:''}</div>
       <div class="fm"><span>PER <b>${fv(info.per,'',1)}</b></span><span>PBR <b>${fv(info.pbr,'',2)}</b></span><span>배당 <b>${fv(info.div,'%',2)}</b></span><span>ROE <b>${fv(info.roe,'%',1)}</b>${info.roe_est?'<small>추정</small>':''}</span></div></button>
+      <div class="hd-a">${[['B','추가 매수'],['S','매도'],['set','수량 맞추기']].map(([v,l])=>`<button class="btn sm" data-act="${v}" data-ak="${esc(x.k)}" aria-pressed="${pfAct[x.k]===v}">${l}</button>`).join('')}</div>
+      ${pfAct[x.k]?`<div class="hd-f" data-tfk="${esc(x.k)}"></div>`:''}
       ${open?`<div class="hd-x">${m?`<div class="mo"><b>해자 ${esc(m.moat)}</b> · 추세 ${esc(m.trend||'-')}${m.sources?.length?` · ${m.sources.map(esc).join('·')}`:''}</div><p>${esc(m.why)}</p><p class="mute"><b>리스크</b> ${esc(m.risk)}</p>`:'<p class="mute">이 종목은 아직 해자 분석이 없습니다. Claude에게 분석을 요청해 주세요.</p>'}
         <p class="mute" style="font-size:12px">${info.ind?`업종: ${esc(info.ind)} · `:''}${info.mcap?`시총 ${KRWs(us?info.mcap*fxAt(d2i(today())):info.mcap)}원 · `:''}${info.fper?`예상 PER ${fv(info.fper,'',1)} · `:''}${x.real?`실현손익 ${KRWs(x.real)}원`:''}</p></div>`:''}</div>`;
   }).join('')||'<div class="empty" style="border-radius:0">보유 중인 종목이 없습니다</div>';
@@ -167,6 +173,12 @@ function drawAsset(el,R,p){
   el.innerHTML=h;
   $$('#pfAllocSeg button').forEach(b=>b.onclick=()=>{pfAlloc=b.dataset.v;store.set('pfAlloc',pfAlloc);pfDraw();});
   $$('[data-hk]').forEach(b=>b.onclick=()=>{pfOpen[b.dataset.hk]=!pfOpen[b.dataset.hk];pfDraw();});
+  $('#pfAddBtn').onclick=()=>{pfAct.__new=!pfAct.__new;pfDraw();};
+  if($('#pfNewTF')) tradeForm($('#pfNewTF'),{mode:'set',onDone:()=>{pfAct.__new=false;pfDraw();}});
+  el.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>{const k=b.dataset.ak,v=b.dataset.act;pfAct[k]=pfAct[k]===v?null:v;pfDraw();
+    const host=el.isConnected&&$('#mg-asset').querySelector(`[data-tfk="${CSS.escape(k)}"]`); host&&host.scrollIntoView({block:'nearest',behavior:'smooth'});});
+  el.querySelectorAll('[data-tfk]').forEach(host=>{const k=host.dataset.tfk,v=pfAct[k];
+    tradeForm(host,{k,side:v==='set'?'B':v,mode:v==='set'?'set':'trade',compact:true,onDone:()=>{pfAct[k]=null;pfDraw();},onCancel:()=>{pfAct[k]=null;pfDraw();}});});
   bindSync(el);
 }
 function pfMissing(have){
@@ -253,6 +265,100 @@ function barChart(el,G){
   svg.addEventListener('pointerleave',()=>tip.hidden=true);
 }
 
+
+/* ---------- 종목 검색 + 매매 입력 (기록·자산 공용) ---------- */
+let SYM=null, symLoading=null, tfSeq=0; const pfAct={};
+function symLoad(){ if(!symLoading) symLoading=fetch('data/symbols.json?t='+Math.floor(Date.now()/36e5),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null).then(j=>{SYM=j;}); return symLoading; }
+const nz=v=>String(v||'').toLowerCase().replace(/[\s·\-_.()]/g,'');
+function symSearch(q){
+  const Q=nz(q), Qu=String(q||'').trim().toUpperCase(); if(!Q) return [];
+  const out=new Map(), add=(k,name,typ,score)=>{const o=out.get(k);if(!o||o.score>score)out.set(k,{k,name,typ,score});};
+  stockOptions(pfGet()).forEach(o=>{const c=o.k.split(':')[1],n=nz(o.name);
+    if(c===Qu)add(o.k,o.name,'',-2);else if(n.startsWith(Q)||c.startsWith(Qu))add(o.k,o.name,'',-1);else if(n.includes(Q))add(o.k,o.name,'',0.5);});
+  for(const [c,n,t] of SYM?.kr||[]){const nn=nz(n);let sc=null;
+    if(c===Qu)sc=0;else if(c.startsWith(Qu)&&Qu.length>=3)sc=1;else if(nn.startsWith(Q))sc=2;else if(nn.includes(Q))sc=3+nn.indexOf(Q)/100;
+    if(sc!=null)add('KR:'+c,n,t==='E'?'ETF':'',sc+(t==='E'?0:0.01));}
+  if(/^[A-Z][A-Z0-9.\-]{0,7}$/.test(Qu)||/[a-z]/i.test(q)) for(const [t,n] of SYM?.us||[]){
+    let sc=null; if(t===Qu)sc=0;else if(t.startsWith(Qu))sc=1.5+t.length/100;else if(Q.length>=3&&nz(n).includes(Q))sc=4;
+    if(sc!=null)add('US:'+t,n,'',sc);}
+  // 목록에 없을 때: 코드·티커 그대로 쓰기
+  if(/^[0-9A-Z]{6}$/.test(Qu)&&!out.has('KR:'+Qu)) add('KR:'+Qu,Qu,'직접',9);
+  if(/^[A-Z][A-Z.\-]{0,6}$/.test(Qu)&&!out.has('US:'+Qu)) add('US:'+Qu,Qu,'직접',9);
+  return [...out.values()].sort((a,b)=>a.score-b.score).slice(0,8);
+}
+const known=k=>!!((D?.stocks||[]).some(s=>s.id===k)||series(k)||pfGet().trades.some(t=>t.k===k));
+const fmtPx=(k,v)=>v==null?'-':(isUS(k)?'$'+(+v).toFixed(2):Math.round(v).toLocaleString('ko-KR')+'원');
+const numIn=v=>{const x=parseFloat(String(v||'').replace(/[,\s원$주]/g,''));return isFinite(x)?x:NaN;};
+/* opts: {k, side:'B'|'S', mode:'trade'|'set', onDone, compact} */
+function tradeForm(host,opts){
+  const id='tf'+(++tfSeq); let k=opts.k||null, kName=k?nameOf(k):'', kTyp='', track=null, side=opts.side||'B';
+  const mode=opts.mode||'trade';
+  const R0=()=>{try{return pfCalc(pfGet());}catch(e){return null;}};
+  host.innerHTML=`<div class="tf" id="${id}">
+    <div data-f="pick"></div>
+    <div data-f="body" hidden>
+      ${mode==='set'?'':`<div class="seg" role="group" data-f="side"><button data-v="B" aria-pressed="${side==='B'}">매수</button><button data-v="S" aria-pressed="${side==='S'}">매도</button></div>`}
+      <div class="seg" role="group" data-f="track" hidden style="margin-top:8px"><button data-v="prices">시세만 추적 (ETF 등)</button><button data-v="portfolio">보유 종목 (뉴스도)</button></div>
+      <div class="grid2"><label>${mode==='set'?'기준일':'날짜'}<input class="inp" type="date" data-f="d" value="${today()}" max="${today()}"></label>
+        <label>${mode==='set'?'보유 수량 (주)':'수량 (주)'}<input class="inp" data-f="q" inputmode="decimal" autocomplete="off"></label></div>
+      <div class="grid2"><label><span data-f="pxl">가격</span><input class="inp" data-f="p" inputmode="decimal" autocomplete="off"></label>
+        <label>수수료·세금 (원, 선택)<input class="inp" data-f="fee" inputmode="decimal" autocomplete="off" placeholder="0"></label></div>
+      <label data-f="fxw" hidden>환율 (원/달러, 비우면 그날 환율)<input class="inp" data-f="fx" inputmode="decimal" autocomplete="off"></label>
+      <div class="msg mute" data-f="hint"></div>
+      <div class="btns"><button class="btn pri" data-f="save">${mode==='set'?'수량 맞추기':'기록 추가'}</button>${opts.onCancel?'<button class="btn" data-f="cancel">닫기</button>':''}</div>
+    </div><div class="msg" data-f="msg"></div></div>`;
+  const $f=n=>host.querySelector(`[data-f="${n}"]`);
+  const drawPick=()=>{
+    const pk=$f('pick');
+    if(k){pk.innerHTML=opts.k?'':`<div class="picked"><span><b>${esc(kName)}</b> <span class="mk">${isUS(k)?'미국':'국내'}</span>${kTyp?` <span class="mk">${esc(kTyp)}</span>`:''} <small>${esc(k.split(':')[1])}</small></span><button class="btn sm" data-f="chg">바꾸기</button></div>`;
+      const c=$f('chg'); c&&(c.onclick=()=>{k=null;drawPick();});
+      $f('body').hidden=false; refresh(); return;}
+    $f('body').hidden=true;
+    pk.innerHTML=`<label>종목·ETF 검색<input class="inp" data-f="sq" autocomplete="off" placeholder="이름이나 코드 · 예: 코스닥150레버리지, 233740, NVDA" enterkeyhint="search"></label><div class="sr" data-f="sr"></div>`;
+    const inp=$f('sq'), sr=$f('sr');
+    const show=()=>{const res=symSearch(inp.value);
+      sr.innerHTML=res.map(r=>`<button class="sr-i" data-k="${esc(r.k)}" data-n="${esc(r.name)}" data-t="${esc(r.typ)}"><span><b>${esc(r.name)}</b>${r.typ?` <span class="mk">${esc(r.typ)}</span>`:''}</span><small>${isUS(r.k)?'미국':'국내'} ${esc(r.k.split(':')[1])}</small></button>`).join('')
+        ||(inp.value.trim()?`<div class="note">${SYM?'찾는 종목이 없습니다. 6자리 코드나 미국 티커를 그대로 넣어 보세요.':'종목 목록을 불러오는 중이거나 아직 없습니다. 6자리 코드나 티커를 넣으면 바로 쓸 수 있습니다.'}</div>`:'');
+      sr.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{k=b.dataset.k;kName=b.dataset.n;kTyp=b.dataset.t;
+        track=known(k)?null:(kTyp==='ETF'||/ETF|ETN|KODEX|TIGER|KBSTAR|ACE|SOL|HANARO|ARIRANG|KOSEF|RISE|PLUS/i.test(kName)?'prices':'portfolio');drawPick();});};
+    inp.oninput=show; symLoad().then(()=>{if(inp.isConnected&&inp.value)show();});
+    if(!opts.compact) setTimeout(()=>inp.focus(),50);
+  };
+  const refresh=()=>{
+    if(!k) return;
+    const us=isUS(k), d=$f('d').value||today(), c=lastLE(series(k),d2i(d)), R=R0(), hold=R?.hold.find(h=>h.k===k), cur=hold?hold.q:0;
+    $f('fxw').hidden=!us;
+    $f('pxl').textContent=(mode==='set'?(cur>0?'추가분 가격':'평단가 (1주)'):'1주 가격')+(us?' (달러)':' (원)');
+    $f('p').placeholder=c!=null?(us?c.toFixed(2):String(Math.round(c))):'';
+    const tr=$f('track'); tr.hidden=!track; if(track) tr.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===track));
+    let hint=[cur?`지금 ${cur.toLocaleString('ko-KR')}주 (평단 ${fmtPx(k,hold.avg)})`:'아직 보유 기록 없음', c!=null?`${md(d)} 종가 ${fmtPx(k,c)}`:(series(k)?'':'시세는 다음 수집 후 반영')];
+    if(mode==='set'){const q=numIn($f('q').value); if(q>=0&&isFinite(q)){const dlt=q-cur; hint.push(dlt>0?`→ ${dlt.toLocaleString('ko-KR')}주 매수로 기록`:dlt<0?`→ ${(-dlt).toLocaleString('ko-KR')}주 매도로 기록`:'→ 변동 없음');}}
+    $f('hint').textContent=hint.filter(Boolean).join(' · ');
+  };
+  host.querySelectorAll('[data-f="side"] button').forEach(b=>b.onclick=()=>{side=b.dataset.v;b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));});
+  host.querySelectorAll('[data-f="track"] button').forEach(b=>b.onclick=()=>{track=b.dataset.v;refresh();});
+  $f('d').onchange=refresh; $f('q').oninput=()=>{if(mode==='set')refresh();};
+  $f('cancel')&&($f('cancel').onclick=opts.onCancel);
+  $f('save').onclick=async()=>{
+    const m=$f('msg'); m.className='msg err';
+    if(!k){m.textContent='종목을 골라 주세요.';return;}
+    const d=$f('d').value, q=numIn($f('q').value), px=numIn($f('p').value||$f('p').placeholder), fee=numIn($f('fee').value)||0, fx=numIn($f('fx').value);
+    if(!d){m.textContent='날짜를 넣어 주세요.';return;}
+    if(!(q>=0)||(mode!=='set'&&!(q>0))){m.textContent='수량을 넣어 주세요.';$f('q').focus();return;}
+    let sd=side, qq=q;
+    if(mode==='set'){const R=R0(),cur=R?.hold.find(h=>h.k===k)?.q||0,dl=q-cur; if(Math.abs(dl)<1e-9){m.className='msg';m.textContent='이미 그 수량입니다.';return;} sd=dl>0?'B':'S'; qq=Math.abs(dl);}
+    if(!(px>0)){m.textContent='가격을 넣어 주세요.';$f('p').focus();return;}
+    if(sd==='S'){const R=R0(),cur=R?.hold.find(h=>h.k===k)?.q||0; if(qq>cur+1e-9){m.textContent=`가진 수량(${cur}주)보다 많이 팔 수 없습니다.`;return;}}
+    const t={id:uid(),d,k,name:kName||nameOf(k),side:sd,q:qq,p:px,fee}; if(isUS(k)&&fx>0)t.fx=fx; if(track==='prices')t.track='prices';
+    const P=pfGet(); P.trades.push(t); pfSet(P);
+    m.className='msg ok'; m.textContent=`${d} ${t.name} ${qq.toLocaleString('ko-KR')}주 ${sd==='B'?'매수':'매도'} 기록을 넣었습니다.`;
+    if(track&&!series(k)){ if(track==='prices') await addTicker(k,t.name,'prices',m); else if(!store.get('pfSync',false)) await addTicker(k,t.name,'portfolio',m); }
+    pfAutoSync();
+    setTimeout(()=>opts.onDone&&opts.onDone(),900);
+  };
+  drawPick();
+}
+
 /* ---------- 기록 ---------- */
 function stockOptions(p){
   const m=new Map();
@@ -267,14 +373,7 @@ function drawRecord(el,p,R){
   const opts=stockOptions(p);
   let f='';
   if(recKind==='B'||recKind==='S'){
-    f=`<label>종목<select class="inp" id="rStock">${opts.map(o=>`<option value="${esc(o.k)}">${esc(o.name)} (${esc(o.k.replace(':',' '))})${o.g==='watch'?' · 관심':''}</option>`).join('')}<option value="__new">+ 다른 종목·ETF 직접 입력</option></select></label>
-      <div id="rNew" hidden><div class="seg" role="group" id="rMkt" style="margin-top:10px"><button data-v="KR" aria-pressed="true">국내</button><button data-v="US" aria-pressed="false">미국</button></div>
-        <div class="grid2"><label>종목코드·티커<input class="inp" id="rCode" autocomplete="off" placeholder="예: 233740 / NVDA"></label><label>이름<input class="inp" id="rName" autocomplete="off" placeholder="예: KODEX 코스닥150레버리지"></label></div>
-        <div class="seg" role="group" id="rTrack" style="margin-top:8px"><button data-v="prices" aria-pressed="true">시세만 추적 (ETF 등)</button><button data-v="portfolio" aria-pressed="false">보유 종목에 추가 (뉴스도)</button></div></div>
-      <div class="grid2"><label>날짜<input class="inp" type="date" id="rDate" value="${today()}" max="${today()}"></label><label>수량 (주)<input class="inp" id="rQty" inputmode="decimal" autocomplete="off"></label></div>
-      <div class="grid2"><label><span id="rPxL">1주 가격 (원)</span><input class="inp" id="rPx" inputmode="decimal" autocomplete="off"></label><label>수수료·세금 (원, 선택)<input class="inp" id="rFee" inputmode="decimal" autocomplete="off" placeholder="0"></label></div>
-      <label id="rFxW" hidden>환율 (원/달러, 비우면 그날 환율)<input class="inp" id="rFx" inputmode="decimal" autocomplete="off"></label>
-      <div class="msg mute" id="rHint"></div>`;
+    f='<div id="rTF"></div>';
   }else if(recKind==='oth'){
     f=`<label>자산<select class="inp" id="oSel">${p.others.map(o=>`<option value="${esc(o.id)}">${esc(o.name)} (${esc(o.type)})</option>`).join('')}<option value="__new">+ 새 자산</option></select></label>
       <div id="oNew"><div class="grid2"><label>이름<input class="inp" id="oName" placeholder="예: 우리은행 정기예금"></label><label>종류<select class="inp" id="oType">${['예금','적금','CMA','펀드','연금','기타'].map(t=>`<option>${t}</option>`).join('')}</select></label></div></div>
@@ -293,7 +392,7 @@ function drawRecord(el,p,R){
     const s=r.x;return `<div class="row"><div><div class="nm2"><span class="k trust">${esc(r.o.type)}</span> ${esc(r.o.name)}</div><div class="sub">${s.d} · 평가 ${KRW(+s.val)} · 원금 ${KRW(+s.prin||0)}</div></div><span></span><button class="btn sm del" data-del="o:${esc(r.o.id)}:${esc(s.id)}">삭제</button></div>`;
   };
   el.innerHTML=`<div class="form"><div class="chips" role="group" aria-label="기록 종류" id="rKind" style="margin-top:0">${K.map(([v,l])=>`<button class="chip-b" data-v="${v}" aria-pressed="${recKind===v}">${l}</button>`).join('')}</div>
-    ${f}<div class="btns"><button class="btn pri" id="rSave">기록 추가</button></div><div class="msg" id="rMsg"></div></div>
+    ${f}${recKind==='B'||recKind==='S'?'':'<div class="btns"><button class="btn pri" id="rSave">기록 추가</button></div><div class="msg" id="rMsg"></div>'}</div>
     <label class="tog"><input type="checkbox" id="pfAuto" ${p.auto?'checked':''}> 모자란 매수금은 입금으로 보기 <small>입금 기록을 따로 넣지 않을 때 켜 두세요. 매수에 쓴 돈이 원금으로 잡힙니다.</small></label>
     ${R&&R.autoIn>0.5&&p.auto?`<p class="note">지금까지 자동으로 원금 처리된 금액: <b>${KRW(R.autoIn)}</b></p>`:''}
     <h2 class="sec-title">기록 <span class="mute" style="font-size:14px">${recs.length}건</span></h2>
@@ -307,48 +406,14 @@ function drawRecord(el,p,R){
   $$('#rKind button').forEach(b=>b.onclick=()=>{recKind=b.dataset.v;pfDraw();});
   $('#pfAuto').onchange=e=>{const q=pfGet();q.auto=e.target.checked;pfSet(q);pfDraw();};
   $('#rAll')&&($('#rAll').onclick=()=>{pfOpen.__all=true;pfDraw();});
-  let rMkt='KR', rTrack='prices';
-  const sel=$('#rStock');
-  const syncStock=()=>{
-    const v=sel.value, isNew=v==='__new', us=isNew?rMkt==='US':isUS(v);
-    $('#rNew').hidden=!isNew; $('#rFxW').hidden=!us; $('#rPxL').textContent=us?'1주 가격 (달러)':'1주 가격 (원)';
-    const hint=$('#rHint');
-    if(!isNew){const hold=R?.hold.find(h=>h.k===v);const c=lastLE(series(v),d2i($('#rDate').value||today()));
-      hint.textContent=[hold?`보유 ${(+hold.q).toLocaleString('ko-KR')}주`:'',c!=null?`그날 종가 ${us?'$'+c.toFixed(2):Math.round(c).toLocaleString('ko-KR')+'원'}`:(series(v)?'':'아직 시세가 없는 종목입니다 (다음 수집 후 반영)')].filter(Boolean).join(' · ');
-      if(c!=null&&!$('#rPx').value) $('#rPx').placeholder=us?c.toFixed(2):String(Math.round(c));}
-    else hint.textContent='';
-  };
-  if(sel){
-    sel.onchange=syncStock; $('#rDate').onchange=()=>{$('#rPx').placeholder='';syncStock();};
-    $$('#rMkt button').forEach(b=>b.onclick=()=>{rMkt=b.dataset.v;setSeg('#rMkt',rMkt);syncStock();});
-    $$('#rTrack button').forEach(b=>b.onclick=()=>{rTrack=b.dataset.v;setSeg('#rTrack',rTrack);});
-    syncStock();
-  }
+  if($('#rTF')) tradeForm($('#rTF'),{side:recKind,mode:'trade',onDone:pfDraw});
   const oSel=$('#oSel');
   if(oSel){const sync=()=>{$('#oNew').hidden=oSel.value!=='__new';const o=p.others.find(x=>x.id===oSel.value);if(o){const l=o.snaps[o.snaps.length-1];$('#oPrin').value=l?.prin||'';}};oSel.onchange=sync;sync();}
   // 저장
   const n=v=>{const x=parseFloat(String(v||'').replace(/[,\s원$]/g,''));return isFinite(x)?x:NaN;};
-  $('#rSave').onclick=async()=>{
+  $('#rSave')&&($('#rSave').onclick=async()=>{
     const m=$('#rMsg'); m.className='msg err'; const q=pfGet();
-    if(recKind==='B'||recKind==='S'){
-      let k=sel.value, name;
-      if(k==='__new'){
-        const code=$('#rCode').value.trim().toUpperCase(); name=$('#rName').value.trim()||code;
-        if(rMkt==='KR'&&!/^[0-9A-Z]{6}$/.test(code)){m.textContent='국내 종목·ETF는 6자리 코드를 넣어 주세요 (예: 233740).';return;}
-        if(rMkt==='US'&&!/^[A-Z][A-Z0-9.\-]{0,7}$/.test(code)){m.textContent='미국 종목은 티커를 넣어 주세요 (예: NVDA).';return;}
-        k=`${rMkt}:${code}`;
-      } else name=nameOf(k);
-      const d=$('#rDate').value, qty=n($('#rQty').value), px=n($('#rPx').value||$('#rPx').placeholder), fee=n($('#rFee').value)||0, fx=n($('#rFx')?.value);
-      if(!d){m.textContent='날짜를 넣어 주세요.';return;}
-      if(!(qty>0)){m.textContent='수량을 넣어 주세요.';$('#rQty').focus();return;}
-      if(!(px>0)){m.textContent='가격을 넣어 주세요.';$('#rPx').focus();return;}
-      const t={id:uid(),d,k,name,side:recKind,q:qty,p:px,fee}; if(isUS(k)&&fx>0) t.fx=fx;
-      if(sel.value==='__new'&&rTrack==='prices') t.track='prices';
-      q.trades.push(t); pfSet(q);
-      m.className='msg ok'; m.textContent=`${d} ${name} ${qty}주 ${recKind==='B'?'매수':'매도'} 기록을 넣었습니다.`;
-      if(sel.value==='__new'&&!series(k)){ if(rTrack==='prices') await addTicker(k,name,'prices',m); else if(!store.get('pfSync',false)) await addTicker(k,name,'portfolio',m); }
-      $('#rQty').value='';$('#rPx').value='';$('#rFee').value='';
-      setTimeout(()=>{pfDraw();pfAutoSync();},1200);
+    if(recKind==='B'||recKind==='S'){ return;
     }else if(recKind==='oth'){
       let id=oSel.value, o;
       if(id==='__new'){const name=$('#oName').value.trim();if(!name){m.textContent='자산 이름을 넣어 주세요.';return;}o={id:uid(),name,type:$('#oType').value,snaps:[]};q.others.push(o);}
@@ -362,7 +427,7 @@ function drawRecord(el,p,R){
       const amt=n($('#fAmt').value); if(!(amt>0)){m.textContent='금액을 넣어 주세요.';return;}
       q.flows.push({id:uid(),d:$('#fDate').value,kind:recKind,amt,memo:$('#fMemo').value.trim()}); pfSet(q); pfDraw();
     }
-  };
+  });
   el.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
     const [t,id,sid]=b.dataset.del.split(':'), q=pfGet();
     if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='정말 삭제';setTimeout(()=>{if(b.isConnected){b.dataset.armed='';b.textContent='삭제';}},3000);return;}
@@ -476,6 +541,6 @@ async function pfDraw(){
   if(!PX) el.insertAdjacentHTML('afterbegin','<div class="warn">시세 파일을 아직 받지 못했습니다. 다음 수집 뒤에 다시 열어 주세요.</div>');
   if(pfSeg==='asset') drawAsset(el,R,p); else if(pfSeg==='ret') drawReturn(el,R); else drawRecord(el,p,R);
 }
-function pfShow(){pfDraw();}
+function pfShow(){pfDraw();symLoad();}
 $$('#mgSeg button').forEach(b=>b.onclick=()=>{pfSeg=b.dataset.v;store.set('pfSeg',pfSeg);pfDraw();scrollTo(0,0);});
 window.addEventListener('resize',()=>{if(view==='manage'&&pfSeg==='ret')pfDraw();});
