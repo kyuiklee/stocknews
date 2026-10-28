@@ -141,10 +141,11 @@ function drawAsset(el,R,p){
   h+=syncBanner(R);
   // 비중
   const items=R.hold.filter(x=>x.val!=null).map(x=>({k:x.k,name:nameOf(x.k),val:x.val,sec:pfSectorOf(x.k)}));
-  if(N.C>0.5) items.push({k:'cash',name:'예수금',val:N.C,sec:'현금성'});
-  R.others.forEach(o=>items.push({k:'o:'+o.id,name:o.name,val:+o.last.val,sec:o.type==='펀드'||o.type==='연금'?o.type:'현금성'}));
+  if(N.C>0.5) items.push({k:'cash',name:'증권계좌 예수금',val:N.C,sec:'현금'});
+  const OSEC={현금:'현금',예금:'예금·적금·CMA',적금:'예금·적금·CMA',CMA:'예금·적금·CMA',펀드:'펀드',연금:'연금'};
+  R.others.forEach(o=>items.push({k:'o:'+o.id,name:o.name,val:+o.last.val,sec:OSEC[o.type]||'기타 자산'}));
   const tot=items.reduce((a,b)=>a+b.val,0)||1;
-  const mktOf=i=>i.k==='cash'||i.k.startsWith('o:')?(i.sec==='현금성'?'현금·예금':'펀드·연금'):(isUS(i.k)?'해외 (미국)':'국내');
+  const mktOf=i=>i.k==='cash'||i.k.startsWith('o:')?(i.sec==='현금'||i.sec==='예금·적금·CMA'?'현금·예금':'펀드·연금·기타'):(isUS(i.k)?'해외 (미국)':'국내');
   const g={};
   items.forEach(i=>{const n=pfAlloc==='sector'?i.sec:pfAlloc==='market'?mktOf(i):i.name;g[n]=(g[n]||0)+i.val;});
   let rows=Object.entries(g).map(([name,val])=>({name,val})).sort((a,b)=>b.val-a.val);
@@ -173,7 +174,7 @@ function drawAsset(el,R,p){
   h+='</div>';
   if(N.C>0.5||R.others.length){
     h+=`<h2 class="sec-title">현금·기타 자산</h2><div class="list">${N.C>0.5?`<div class="row"><div><div class="nm2">증권계좌 예수금</div><div class="sub">입금·매매 기록으로 계산</div></div><span></span><b>${KRWs(N.C)}원</b></div>`:''}
-      ${R.others.map(o=>{const g=(+o.last.val)-(+o.last.prin||0);return `<div class="row"><div><div class="nm2">${esc(o.name)} <span class="mute" style="font-size:12px">${esc(o.type)}</span></div><div class="sub">${md(o.last.d)} 기준 · 납입 ${KRWs(+o.last.prin||0)}원${+o.last.prin?` · <span class="${sgnCls(g)}">${g>=0?'+':''}${KRWs(g)}원</span>`:''}</div></div><span></span><b>${KRWs(+o.last.val)}원</b></div>`;}).join('')}</div>`;
+      ${R.others.map(o=>{const g=(+o.last.val)-(+o.last.prin||0);return `<div class="row"><div><div class="nm2">${esc(o.name)} <span class="mute" style="font-size:12px">${esc(o.type)}</span></div><div class="sub">${md(o.last.d)} 기준${o.type==='현금'?'':` · 납입 ${KRWs(+o.last.prin||0)}원`}${o.type!=='현금'&&+o.last.prin?` · <span class="${sgnCls(g)}">${g>=0?'+':''}${KRWs(g)}원</span>`:''}</div></div><span></span><b>${KRWs(+o.last.val)}원</b></div>`;}).join('')}</div>`;
   }
   h+=`<p class="note">시세는 하루 4번 받습니다(국내 장중에는 수집 시점 가격). 미국 종목은 그날 원/달러 환율로 바꿔 더합니다. PER·PBR·배당·ROE는 네이버 증권(국내)·야후 파이낸스(미국) 기준이고, 해자는 Claude가 ${esc(MO?.asof||'')} 기준으로 정리한 정성 의견입니다. 투자 권유가 아닙니다.</p>`;
   el.innerHTML=h;
@@ -415,9 +416,10 @@ function drawRecord(el,p,R){
     f='<div id="rTF"></div>';
   }else if(recKind==='oth'){
     f=`<label>자산<select class="inp" id="oSel">${p.others.map(o=>`<option value="${esc(o.id)}">${esc(o.name)} (${esc(o.type)})</option>`).join('')}<option value="__new">+ 새 자산</option></select></label>
-      <div id="oNew"><div class="grid2"><label>이름<input class="inp" id="oName" placeholder="예: 우리은행 정기예금"></label><label>종류<select class="inp" id="oType">${['예금','적금','CMA','펀드','연금','기타'].map(t=>`<option>${t}</option>`).join('')}</select></label></div></div>
+      <div id="oNew"><div class="grid2"><label>이름<input class="inp" id="oName" placeholder="예: 우리은행 정기예금"></label><label>종류<select class="inp" id="oType">${['현금','예금','적금','CMA','펀드','연금','기타'].map(t=>`<option>${t}</option>`).join('')}</select></label></div></div>
       <div class="grid2"><label>기준일<input class="inp" type="date" id="oDate" value="${today()}" max="${today()}"></label><label>현재 평가액 (원)<input class="inp" id="oVal" inputmode="decimal"></label></div>
-      <label>지금까지 넣은 원금 (원)<input class="inp" id="oPrin" inputmode="decimal" placeholder="예금이면 맡긴 금액"></label>
+      <label id="oPrinW">지금까지 넣은 원금 (원)<input class="inp" id="oPrin" inputmode="decimal" placeholder="예금이면 맡긴 금액"></label>
+      <p class="note" id="oCashNote" hidden>현금은 들고 있는 금액 그대로 원금으로 봅니다 (수익률에 영향 없음). 금액이 바뀌면 새 날짜로 다시 넣어 주세요.</p>
       <p class="note">값이 바뀔 때마다(이자·납입·평가액 변동) 새 기준일로 다시 넣으면 그래프에 반영됩니다.</p>`;
   }else{
     f=`<div class="grid2"><label>날짜<input class="inp" type="date" id="fDate" value="${today()}" max="${today()}"></label><label>금액 (원)<input class="inp" id="fAmt" inputmode="decimal"></label></div>
@@ -447,7 +449,15 @@ function drawRecord(el,p,R){
   $('#rAll')&&($('#rAll').onclick=()=>{pfOpen.__all=true;pfDraw();});
   if($('#rTF')) tradeForm($('#rTF'),{side:recKind,mode:'trade',onDone:pfDraw});
   const oSel=$('#oSel');
-  if(oSel){const sync=()=>{$('#oNew').hidden=oSel.value!=='__new';const o=p.others.find(x=>x.id===oSel.value);if(o){const l=o.snaps[o.snaps.length-1];$('#oPrin').value=l?.prin||'';}};oSel.onchange=sync;sync();}
+  if(oSel){const sync=()=>{const isNew=oSel.value==='__new';$('#oNew').hidden=!isNew;const o=p.others.find(x=>x.id===oSel.value);
+      const cash=isNew?$('#oType').value==='현금':o?.type==='현금';
+      $('#oPrinW').hidden=cash; $('#oCashNote').hidden=!cash;
+      $('#oVal').closest('label').firstChild.textContent=cash?'보유 현금 (원)':'현재 평가액 (원)';
+      if(isNew&&cash&&!$('#oName').value) $('#oName').value='보유 현금';
+      if(o&&!cash){const l=o.snaps[o.snaps.length-1];$('#oPrin').value=l?.prin||'';}};
+    oSel.onchange=sync; $('#oType').onchange=()=>{if($('#oName').value==='보유 현금'&&$('#oType').value!=='현금')$('#oName').value='';sync();};
+    if(!p.others.length) oSel.value='__new';
+    sync();}
   // 저장
   const n=v=>{const x=parseFloat(String(v||'').replace(/[,\s원$]/g,''));return isFinite(x)?x:NaN;};
   $('#rSave')&&($('#rSave').onclick=async()=>{
@@ -460,7 +470,7 @@ function drawRecord(el,p,R){
       const val=n($('#oVal').value), prin=n($('#oPrin').value);
       if(!(val>=0)){m.textContent='평가액을 넣어 주세요.';return;}
       o.snaps=o.snaps.filter(s=>s.d!==$('#oDate').value);
-      o.snaps.push({id:uid(),d:$('#oDate').value,val,prin:isFinite(prin)?prin:(o.snaps[o.snaps.length-1]?.prin||0)});
+      o.snaps.push({id:uid(),d:$('#oDate').value,val,prin:o.type==='현금'?val:(isFinite(prin)?prin:(o.snaps[o.snaps.length-1]?.prin||0))});
       o.snaps.sort((a,b)=>a.d<b.d?-1:1); pfSet(q); pfDraw();
     }else{
       const amt=n($('#fAmt').value); if(!(amt>0)){m.textContent='금액을 넣어 주세요.';return;}
