@@ -626,7 +626,7 @@ def main():
         print(f"  {k}: 성공 {v['ok']} 실패 {v['fail']} 기사 {v['items']}" + (f" ({v['err']})" if v["err"] else ""))
     try:                                            # 시세·재무 지표 (보유·관심 + 가격만 추적하는 ETF 등)
         import market
-        market.run(stocks + load_price_only(), NOW)
+        market.run(stocks + load_price_only(), NOW, CFG["sec_user_agent"])
     except Exception as e:
         import traceback
         traceback.print_exc()

@@ -233,8 +233,66 @@ def yf_fund(t):
         return {}
 
 
+
+# ---------------------------------------------------------------- 검색용 종목 목록
+OUT_SYM = os.path.join(ROOT, "site", "data", "symbols.json")
+US_ETF = [("SPY", "SPDR S&P 500 ETF"), ("VOO", "Vanguard S&P 500 ETF"), ("QQQ", "Invesco QQQ"), ("TQQQ", "ProShares UltraPro QQQ"),
+          ("SOXL", "Direxion Semiconductor Bull 3X"), ("SOXX", "iShares Semiconductor ETF"), ("SCHD", "Schwab US Dividend Equity ETF"),
+          ("VTI", "Vanguard Total Stock Market ETF"), ("IWM", "iShares Russell 2000 ETF"), ("TLT", "iShares 20+ Year Treasury Bond ETF"),
+          ("XLU", "Utilities Select Sector SPDR"), ("XLE", "Energy Select Sector SPDR"), ("GLD", "SPDR Gold Shares"), ("JEPI", "JPMorgan Equity Premium Income ETF"),
+          ("ARKK", "ARK Innovation ETF"), ("SMH", "VanEck Semiconductor ETF"), ("DIA", "SPDR Dow Jones Industrial Average ETF")]
+
+
+def symbols(sec_ua):
+    """국내 주식·ETF, 미국 티커 목록 (앱의 종목 검색용). 하루 한 번 새로 받음"""
+    c = _load("symbols.json", None)
+    if c and time.time() - c.get("at", 0) < 20 * 3600:
+        return c
+    kr, us = {}, {}
+    try:
+        import FinanceDataReader as fdr
+        df = fdr.StockListing("KRX")
+        for code, name, mkt in zip(df["Code"], df["Name"], df["Market"]):
+            kr[str(code)] = [str(code), str(name), "S", str(mkt)[:6]]
+        _st("sym_kr", True)
+    except Exception as e:
+        _st("sym_kr", False, e)
+    try:                                                  # 네이버 ETF 전체 목록
+        r = S.get("https://finance.naver.com/api/sise/etfItemList.nhn", timeout=20)
+        for x in (r.json().get("result") or {}).get("etfItemList") or []:
+            kr[x["itemcode"]] = [x["itemcode"], x["itemname"], "E", "ETF"]
+        _st("sym_etf", True)
+    except Exception as e:
+        _st("sym_etf", False, e)
+        try:
+            import FinanceDataReader as fdr
+            df = fdr.StockListing("ETF/KR")
+            for code, name in zip(df["Symbol"], df["Name"]):
+                kr[str(code)] = [str(code), str(name), "E", "ETF"]
+            _st("sym_etf", True)
+        except Exception as e2:
+            _st("sym_etf_fdr", False, e2)
+    try:
+        r = requests.get("https://www.sec.gov/files/company_tickers.json", headers={"User-Agent": sec_ua}, timeout=30)
+        for v in r.json().values():
+            t = v["ticker"].upper()
+            us.setdefault(t, [t, v["title"]])
+        _st("sym_us", True)
+    except Exception as e:
+        _st("sym_us", False, e)
+    for t, n in US_ETF:
+        us.setdefault(t, [t, n])
+    if (not kr or not us) and c:                         # 실패한 쪽은 이전 목록 사용
+        kr = kr or {x[0]: x for x in c.get("kr", [])}
+        us = us or {x[0]: x for x in c.get("us", [])}
+    out = {"at": time.time(), "kr": sorted(kr.values()), "us": sorted(us.values())}
+    if kr or us:
+        _save("symbols.json", out)
+    return out
+
+
 # ---------------------------------------------------------------- 실행
-def run(stocks, now):
+def run(stocks, now, sec_ua="StockNews personal app"):
     """stocks: [{market, code, name, group}] — 보유·관심·가격추적 모두"""
     t0 = time.time()
     px = _load("px.json", {})
@@ -305,6 +363,13 @@ def run(stocks, now):
     os.makedirs(os.path.dirname(OUT_PX), exist_ok=True)
     json.dump(out_px, open(OUT_PX, "w", encoding="utf-8"), separators=(",", ":"))
     json.dump(out_mk, open(OUT_MK, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+    try:
+        sym = symbols(sec_ua)
+        json.dump({"updated": now.isoformat(), "kr": sym["kr"], "us": sym["us"]},
+                  open(OUT_SYM, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+        print(f"검색용 목록: 국내 {len(sym['kr'])}, 미국 {len(sym['us'])}")
+    except Exception as e:
+        print(f"검색용 목록 실패: {e}")
     print(f"시세·지표: {len(out_px['px'])}종목, 환율 {'있음' if out_px['fx'] else '없음'}, {time.time() - t0:.0f}초")
     for k, v in STATUS.items():
         print(f"  {k}: 성공 {v['ok']} 실패 {v['fail']}" + (f" ({v['err']})" if v["err"] else ""))
