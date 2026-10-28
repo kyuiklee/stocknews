@@ -146,10 +146,13 @@ function drawAsset(el,R,p){
   R.others.forEach(o=>items.push({k:'o:'+o.id,name:o.name,val:+o.last.val,sec:OSEC[o.type]||'기타 자산'}));
   const tot=items.reduce((a,b)=>a+b.val,0)||1;
   const mktOf=i=>i.k==='cash'||i.k.startsWith('o:')?(i.sec==='현금'||i.sec==='예금·적금·CMA'?'현금·예금':'펀드·연금·기타'):(isUS(i.k)?'해외 (미국)':'국내');
-  const g={};
-  items.forEach(i=>{const n=pfAlloc==='sector'?i.sec:pfAlloc==='market'?mktOf(i):i.name;g[n]=(g[n]||0)+i.val;});
-  let rows=Object.entries(g).map(([name,val])=>({name,val})).sort((a,b)=>b.val-a.val);
-  if(rows.length>8){const head=rows.slice(0,7),rest=rows.slice(7);rows=[...head,{name:`기타 ${rest.length}개`,val:rest.reduce((a,b)=>a+b.val,0),other:true}];}
+  const g={}, cashN=new Set();
+  items.forEach(i=>{const n=pfAlloc==='sector'?i.sec:pfAlloc==='market'?mktOf(i):i.name;g[n]=(g[n]||0)+i.val;
+    if(i.sec==='현금'||(pfAlloc==='market'&&n==='현금·예금')) cashN.add(n);});
+  let rows=Object.entries(g).map(([name,val])=>({name,val,cash:cashN.has(name)})).sort((a,b)=>b.val-a.val);
+  {const cash=rows.filter(r=>r.cash), non=rows.filter(r=>!r.cash), room=7;      // 현금은 항상 따로 보이게
+   if(non.length>room+(cash.length?0:1)){const head=non.slice(0,room),rest=non.slice(room);
+     rows=[...head,...cash].sort((a,b)=>b.val-a.val).concat([{name:`기타 ${rest.length}개`,val:rest.reduce((a,b)=>a+b.val,0),other:true}]);}}
   h+=`<h2 class="sec-title">비중</h2><div class="seg" role="group" aria-label="비중 기준" id="pfAllocSeg">${[['stock','종목별'],['sector','산업군별'],['market','국내·해외']].map(([v,l])=>`<button data-v="${v}" aria-pressed="${pfAlloc===v}">${l}</button>`).join('')}</div>
     <div class="pie-box">${donut(rows,tot)}</div>`;
   // 보유 종목
@@ -204,18 +207,19 @@ function bindMissing(el){
 const PIE_N=8;   // 색 7개(고정 순서) + 기타(회색)
 function donut(rows,tot){
   const R=78, r=50, C=96, gap=rows.length>1?0.012:0;
-  let a0=-Math.PI/2, paths='';
+  let a0=-Math.PI/2, paths='', ci=0;
+  rows.forEach(x=>{x.cls=x.other?'po':x.cash?'pcash':'p'+(ci++%7+1);});
   rows.forEach((x,i)=>{
     const f=x.val/tot, a1=a0+f*2*Math.PI, s0=a0+gap/2, s1=Math.max(s0+0.002,a1-gap/2), big=(s1-s0)>Math.PI?1:0;
     const pt=(rad,a)=>`${(C+rad*Math.cos(a)).toFixed(2)},${(C+rad*Math.sin(a)).toFixed(2)}`;
     const d=f>=0.9999?`M${C},${C-R}A${R},${R} 0 1 1 ${C-0.01},${C-R}L${C-0.01},${C-r}A${r},${r} 0 1 0 ${C},${C-r}Z`
       :`M${pt(R,s0)}A${R},${R} 0 ${big} 1 ${pt(R,s1)}L${pt(r,s1)}A${r},${r} 0 ${big} 0 ${pt(r,s0)}Z`;
-    paths+=`<path d="${d}" class="pc ${x.other?'po':'p'+(i%7+1)}" data-pi="${i}"><title>${esc(x.name)} ${(f*100).toFixed(1)}%</title></path>`;
+    paths+=`<path d="${d}" class="pc ${x.cls}" data-pi="${i}"><title>${esc(x.name)} ${(f*100).toFixed(1)}%</title></path>`;
     a0=a1;
   });
   return `<div class="pie"><svg viewBox="0 0 192 192" width="192" height="192" role="img" aria-label="비중 원형 그래프">${paths}
       <text x="${C}" y="${C-4}" text-anchor="middle" class="pt1" data-pt1>합계</text><text x="${C}" y="${C+16}" text-anchor="middle" class="pt2" data-pt2>${KRWs(tot)}</text></svg></div>
-    <div class="lg">${rows.map((x,i)=>`<button class="lg-i" data-pi="${i}"><i class="${x.other?'po':'p'+(i%7+1)}"></i><span class="lg-n">${esc(x.name)}</span><b>${(x.val/tot*100).toFixed(1)}%</b><small>${KRWs(x.val)}</small></button>`).join('')}</div>`;
+    <div class="lg">${rows.map((x,i)=>`<button class="lg-i" data-pi="${i}"><i class="${x.cls}"></i><span class="lg-n">${esc(x.name)}</span><b>${(x.val/tot*100).toFixed(1)}%</b><small>${KRWs(x.val)}</small></button>`).join('')}</div>`;
 }
 function bindDonut(el){
   const box=el.querySelector('.pie-box'); if(!box) return;
@@ -239,22 +243,35 @@ function drawReturn(el,R){
   const chain=rs=>rs.reduce((a,r)=>r.r==null?a:a*(1+r.r),1)-1;
   const pr=chain(rows.slice(1)), pl=rows.slice(1).reduce((a,r)=>a+r.pl,0);
   const first=rows[0], last=rows[rows.length-1];
+  const IX=['KOSPI','KOSDAQ'].map(n=>({n,lbl:n==='KOSPI'?'코스피':'코스닥',ser:PX?.idx?.[n]})).filter(x=>x.ser);
+  const iv=(x,d)=>lastLE(x.ser,d2i(d));
+  const ir=(x,d0,d1)=>{const a=iv(x,d0),b=iv(x,d1);return a&&b?b/a-1:null;};
   let h=`<div class="seg" role="group" aria-label="기간" id="pfPerSeg">${[['30','1개월'],['90','3개월'],['365','1년'],['all','전체']].map(([v,l])=>`<button data-v="${v}" aria-pressed="${pfPer===v}">${l}</button>`).join('')}</div>
     <div class="sum" style="margin-top:10px"><div>기간 수익률<b class="${sgnCls(pr)}">${PCT(pr)}</b></div><div>기간 손익<b class="${sgnCls(pl)}">${pl>=0?'+':''}${KRWs(pl)}</b></div><div>평가액<b>${KRWs(last.V)}</b></div></div>
     <div class="chart-box"><div class="legend"><span><i class="sw s1"></i>평가액</span><span><i class="sw s0"></i>원금</span></div><div id="pfChart" class="chart"></div></div>`;
+  if(IX.length){
+    const ex=IX.map(x=>{const r=ir(x,first.d,last.d);return {...x,r,ex:r!=null?pr-r:null};});
+    h+=`<h2 class="sec-title">벤치마크 비교</h2>
+      <div class="sum"><div>내 포트폴리오<b class="${sgnCls(pr)}">${PCT(pr)}</b></div>${ex.map(x=>`<div>${x.lbl}<b class="${sgnCls(x.r)}">${PCT(x.r)}</b><small class="${sgnCls(x.ex)}" style="font-size:11.5px;font-weight:600">${x.ex==null?'':`대비 ${x.ex>=0?'+':''}${(x.ex*100).toFixed(2)}%p`}</small></div>`).join('')}</div>
+      <div class="chart-box"><div class="legend"><span><i class="sw s1"></i>내 포트폴리오</span>${IX.map((x,i)=>`<span><i class="sw ${i?'b2':'b1'}"></i>${x.lbl}</span>`).join('')}</div><div id="pfCmp" class="chart"></div></div>`;
+  }
   // 일·월·연
   const groups=[]; const keyOf=d=>pfGrain==='d'?d:(pfGrain==='m'?d.slice(0,7):d.slice(0,4));
   const src=pfGrain==='d'?rows.slice(1):all.slice(1);
   src.forEach(r=>{const k=keyOf(r.d);let g=groups[groups.length-1];if(!g||g.k!==k){g={k,rs:[]};groups.push(g);}g.rs.push(r);});
-  const G=groups.map(g=>({k:g.k,r:chain(g.rs),pl:g.rs.reduce((a,r)=>a+r.pl,0),V:g.rs[g.rs.length-1].V})).reverse().slice(0,pfGrain==='d'?60:36);
+  const pos=new Map(all.map((r,i)=>[r.d,i]));
+  const G=groups.map(g=>{const i0=pos.get(g.rs[0].d), d0=all[Math.max(0,i0-1)].d, d1=g.rs[g.rs.length-1].d;
+    return {k:g.k,r:chain(g.rs),pl:g.rs.reduce((a,r)=>a+r.pl,0),V:g.rs[g.rs.length-1].V,ix:IX.map(x=>ir(x,d0,d1))};}).reverse().slice(0,pfGrain==='d'?60:36);
   h+=`<h2 class="sec-title">기간별 수익률</h2><div class="seg" role="group" aria-label="단위" id="pfGrainSeg">${[['d','일별'],['m','월별'],['y','연별']].map(([v,l])=>`<button data-v="${v}" aria-pressed="${pfGrain===v}">${l}</button>`).join('')}</div>
     <div id="pfBars" class="chart bars"></div>
-    <div class="list" style="margin-top:8px"><div class="rt rt-h"><span>기간</span><span>수익률</span><span>손익</span><span>평가액</span></div>${G.map(g=>`<div class="rt"><span>${pfGrain==='d'?md(g.k):(pfGrain==='m'?`${g.k.slice(2,4)}.${g.k.slice(5)}`:g.k+'년')}</span><span class="${sgnCls(g.r)}"><b>${PCT(g.r)}</b></span><span class="${sgnCls(g.pl)}">${g.pl>=0?'+':''}${KRWs(g.pl)}</span><span>${KRWs(g.V)}</span></div>`).join('')}</div>
+    <div class="list" style="margin-top:8px"><div class="rt rt-h${IX.length?' rt5':''}"><span>기간</span><span>내 수익률</span>${IX.map(x=>`<span>${x.lbl}</span>`).join('')}<span>손익</span>${IX.length?'':'<span>평가액</span>'}</div>${G.map(g=>`<div class="rt${IX.length?' rt5':''}"><span>${pfGrain==='d'?md(g.k):(pfGrain==='m'?`${g.k.slice(2,4)}.${g.k.slice(5)}`:g.k+'년')}</span><span class="${sgnCls(g.r)}"><b>${PCT(g.r)}</b></span>${g.ix.map(v=>`<span class="mute">${PCT(v)}</span>`).join('')}<span class="${sgnCls(g.pl)}">${g.pl>=0?'+':''}${KRWs(g.pl)}</span>${IX.length?'':`<span>${KRWs(g.V)}</span>`}</div>`).join('')}</div>
     <p class="note">수익률은 입금·출금 효과를 뺀 시간가중 수익률입니다(날마다 수익률을 이어 곱함). 손익은 평가액 변화에서 들어오고 나간 원금을 뺀 금액입니다. 주말은 건너뛰고, 휴장일은 직전 종가로 계산합니다.</p>`;
   el.innerHTML=h;
   $$('#pfPerSeg button').forEach(b=>b.onclick=()=>{pfPer=b.dataset.v;store.set('pfPer',pfPer);pfDraw();});
   $$('#pfGrainSeg button').forEach(b=>b.onclick=()=>{pfGrain=b.dataset.v;store.set('pfGrain',pfGrain);pfDraw();});
   lineChart($('#pfChart'),rows);
+  if(IX.length){let acc=1;const cum=rows.map((r,i)=>{if(i&&r.r!=null)acc*=1+r.r;return acc-1;});
+    cmpChart($('#pfCmp'),rows.map(r=>r.d),[{name:'내 포트폴리오',cls:'ln1',v:cum},...IX.map((x,j)=>({name:x.lbl,cls:j?'lb2':'lb1',v:rows.map(r=>ir(x,first.d,r.d))}))]);}
   barChart($('#pfBars'),[...G].reverse().slice(-(pfGrain==='d'?30:24)));
 }
 function niceTicks(lo,hi,n=4){const span=hi-lo||Math.abs(hi)||1, step0=span/n, mag=Math.pow(10,Math.floor(Math.log10(step0))), f=step0/mag, step=(f<1.5?1:f<3?2:f<7?5:10)*mag;
@@ -283,6 +300,29 @@ function lineChart(el,rows){
     const tx=x(i)/W*b.width; tip.style.left=Math.min(b.width-tip.offsetWidth-4,Math.max(4,tx-tip.offsetWidth/2))+'px';};
   const hide=()=>{tip.hidden=true;xh.setAttribute('x1',-10);xh.setAttribute('x2',-10);dt.setAttribute('cx',-10);};
   svg.addEventListener('pointermove',move);svg.addEventListener('pointerdown',move);svg.addEventListener('pointerleave',hide);
+}
+
+function cmpChart(el,dates,S){
+  const W=el.clientWidth||358, H=200, L=42, Rm=8, T=10, B=24, n=dates.length;
+  const vs=S.flatMap(s=>s.v.filter(v=>v!=null)), lo0=Math.min(0,...vs), hi0=Math.max(0,...vs), pad=(hi0-lo0)*0.08||0.01;
+  const ticks=niceTicks(lo0-pad,hi0+pad), lo=Math.min(ticks[0],lo0-pad), hi=Math.max(ticks[ticks.length-1],hi0+pad);
+  const x=i=>L+(W-L-Rm)*(n<2?0:i/(n-1)), y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo||1));
+  const path=v=>{let d='',pen=false;v.forEach((y0,i)=>{if(y0==null){pen=false;return;}d+=`${pen?'L':'M'}${x(i).toFixed(1)},${y(y0).toFixed(1)}`;pen=true;});return d;};
+  const dp=Math.abs(hi-lo)<0.05?1:0;
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="내 포트폴리오와 지수 누적 수익률">
+    ${ticks.map(t=>`<line x1="${L}" x2="${W-Rm}" y1="${y(t)}" y2="${y(t)}" class="grid${Math.abs(t)<1e-12?' zero':''}"/><text x="${L-5}" y="${y(t)+4}" class="ax" text-anchor="end">${(t*100).toFixed(dp)}%</text>`).join('')}
+    <text x="${L}" y="${H-6}" class="ax">${dates[0].slice(2).replace(/-/g,'.')}</text><text x="${W-Rm}" y="${H-6}" class="ax" text-anchor="end">${dates[n-1].slice(2).replace(/-/g,'.')}</text>
+    ${S.slice(1).map(s=>`<path d="${path(s.v)}" class="${s.cls}"/>`).join('')}<path d="${path(S[0].v)}" class="${S[0].cls}"/>
+    <line class="xh" y1="${T}" y2="${H-B}" x1="-10" x2="-10"/>
+    <rect x="${L}" y="0" width="${W-L-Rm}" height="${H}" fill="transparent"/></svg><div class="tip" hidden></div>`;
+  const svg=el.querySelector('svg'), tip=el.querySelector('.tip'), xh=el.querySelector('.xh');
+  const move=ev=>{const b=svg.getBoundingClientRect(), px=(ev.clientX-b.left)*W/b.width;
+    const i=Math.max(0,Math.min(n-1,Math.round((px-L)/((W-L-Rm)/(n-1||1)))));
+    xh.setAttribute('x1',x(i));xh.setAttribute('x2',x(i));
+    tip.hidden=false;tip.innerHTML=`<b>${dates[i].replace(/-/g,'.')}</b>`+S.map(s=>`<div>${esc(s.name)} <b>${PCT(s.v[i])}</b></div>`).join('');
+    const tx=x(i)/W*b.width; tip.style.left=Math.min(b.width-tip.offsetWidth-4,Math.max(4,tx-tip.offsetWidth/2))+'px';};
+  svg.addEventListener('pointermove',move);svg.addEventListener('pointerdown',move);
+  svg.addEventListener('pointerleave',()=>{tip.hidden=true;xh.setAttribute('x1',-10);xh.setAttribute('x2',-10);});
 }
 function barChart(el,G){
   if(!G.length){el.innerHTML='';return;}

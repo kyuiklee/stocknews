@@ -272,6 +272,15 @@ select.inp{appearance:auto}
 .lg-i b{font-weight:730}
 .lg-i small{grid-column:2/4;font-size:11.5px;color:var(--sub);margin-top:-2px}
 .lg-i.on{background:var(--track)}
+/* 현금 조각 · 벤치마크 선 */
+:root{--pcash:#3d4b5c;--b1:#eb6834;--b2:#1baf7a}
+@media (prefers-color-scheme: dark){:root{--pcash:#b7c1cc;--b1:#d95926;--b2:#199e70}}
+.pcash{fill:var(--pcash);background:var(--pcash)}
+.chart .lb1{fill:none;stroke:var(--b1);stroke-width:1.75;stroke-linejoin:round}
+.chart .lb2{fill:none;stroke:var(--b2);stroke-width:1.75;stroke-linejoin:round}
+.sw.b1{border-top:2px solid var(--b1)} .sw.b2{border-top:2px solid var(--b2)}
+.rt.rt5{grid-template-columns:44px 1.1fr 1fr 1fr 1fr;font-size:13px;padding:8px 12px}
+.sum small{display:block}
 /* ---------- 하단 탭 ---------- */
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
   padding:6px 0 calc(6px + env(safe-area-inset-bottom));z-index:5}
