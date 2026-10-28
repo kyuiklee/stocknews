@@ -12,33 +12,8 @@
     },
     {
       "market": "KR",
-      "name": "이노스페이스",
-      "code": "462350"
-    },
-    {
-      "market": "KR",
       "name": "강스템바이오텍",
       "code": "217730"
-    },
-    {
-      "market": "KR",
-      "name": "헥토파이낸셜",
-      "code": "234340"
-    },
-    {
-      "market": "KR",
-      "name": "넷마블",
-      "code": "251270"
-    },
-    {
-      "market": "KR",
-      "name": "OCI홀딩스",
-      "code": "010060"
-    },
-    {
-      "market": "KR",
-      "name": "씨에스윈드",
-      "code": "112610"
     },
     {
       "market": "KR",
@@ -55,10 +30,9 @@
       "q_ko": "(\"NAVER\" OR \"네이버\") (주가 OR 실적 OR 목표가 OR 주식 OR 증권)"
     },
     {
-      "market": "US",
-      "name": "인텔",
-      "code": "INTC",
-      "en": "Intel"
+      "market": "KR",
+      "name": "넷마블",
+      "code": "251270"
     },
     {
       "market": "US",
@@ -69,6 +43,30 @@
         "Circle"
       ],
       "q_ko": "\"서클\" (CRCL OR USDC OR 스테이블코인)"
+    },
+    {
+      "market": "KR",
+      "name": "씨에스윈드",
+      "code": "112610"
+    },
+    {
+      "market": "KR",
+      "name": "헥토파이낸셜",
+      "code": "234340"
+    },
+    {
+      "market": "KR",
+      "name": "OCI홀딩스",
+      "code": "010060"
+    },
+    {
+      "market": "US",
+      "name": "템퍼스AI",
+      "code": "TEM",
+      "en": "Tempus AI",
+      "alias_en": [
+        "Tempus"
+      ]
     },
     {
       "market": "US",
@@ -84,24 +82,66 @@
     },
     {
       "market": "US",
-      "name": "퍼스트솔라",
-      "code": "FSLR",
-      "en": "First Solar"
+      "name": "인텔",
+      "code": "INTC",
+      "en": "Intel"
     },
     {
-      "market": "US",
-      "name": "템퍼스AI",
-      "code": "TEM",
-      "en": "Tempus AI",
-      "alias_en": [
-        "Tempus"
-      ]
+      "market": "KR",
+      "name": "이노스페이스",
+      "code": "462350"
     },
     {
       "market": "US",
       "name": "MP머티리얼즈",
       "code": "MP",
       "en": "MP Materials"
+    },
+    {
+      "market": "US",
+      "name": "퍼스트솔라",
+      "code": "FSLR",
+      "en": "First Solar"
+    },
+    {
+      "market": "KR",
+      "name": "HMM",
+      "code": "011200"
+    },
+    {
+      "market": "KR",
+      "name": "대명에너지",
+      "code": "389260"
+    },
+    {
+      "market": "US",
+      "name": "ORACLE CORP",
+      "code": "ORCL"
+    },
+    {
+      "market": "KR",
+      "name": "에스프리즘",
+      "code": "288620"
+    },
+    {
+      "market": "KR",
+      "name": "파마리서치",
+      "code": "214450"
+    },
+    {
+      "market": "KR",
+      "name": "RF머트리얼즈",
+      "code": "327260"
+    },
+    {
+      "market": "KR",
+      "name": "하나마이크론",
+      "code": "067310"
+    },
+    {
+      "market": "KR",
+      "name": "SK바이오사이언스",
+      "code": "302440"
     }
   ],
   "watch": [
@@ -119,6 +159,23 @@
       "market": "KR",
       "name": "Hk이노엔",
       "code": ""
+    }
+  ],
+  "prices": [
+    {
+      "market": "KR",
+      "name": "TIGER 2차전지TOP10레버리지",
+      "code": "412570"
+    },
+    {
+      "market": "KR",
+      "name": "KODEX 코스닥150레버리지",
+      "code": "233740"
+    },
+    {
+      "market": "KR",
+      "name": "ACE 코스닥150",
+      "code": "354500"
     }
   ]
 }
