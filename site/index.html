@@ -168,6 +168,77 @@ details.box ol{font-size:13px;color:var(--sub);line-height:1.6;padding-left:18px
 
 .adv-line{font-size:12.5px;color:var(--sub);padding:0 14px 8px;margin-top:-2px}
 .adv-line b{color:var(--ink);font-weight:700}
+
+/* ---------- 내 자산 ---------- */
+:root{--s1:#2a78d6;--s1-soft:rgba(42,120,214,.12)}
+@media (prefers-color-scheme: dark){:root{--s1:#3987e5;--s1-soft:rgba(57,135,229,.16)}}
+.hero2{background:var(--surface);border-radius:14px;padding:16px 14px 14px}
+.hero2 .lbl{font-size:13px;color:var(--sub)}
+.hero2 .big2{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.15}
+.hero2 .l2{font-size:14px;margin-top:2px}
+.hero2 .l2 b{font-weight:740}
+.sum3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.sum3 div{font-size:12px;color:var(--sub)}
+.sum3 b{display:block;font-size:16px;font-weight:730;color:var(--ink)}
+.sum3 b.up{color:var(--up)} .sum3 b.dn{color:var(--down)}
+.sum3 small{font-size:12px;font-weight:600}
+.up{color:var(--up)} .dn{color:var(--down)}
+.al{display:grid;grid-template-columns:minmax(0,1.2fr) 1fr auto;gap:10px;align-items:center;padding:9px 14px;border-top:1px solid var(--line);font-size:14px}
+.list .al:first-child{border-top:0}
+.al-n{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.al-n small{display:block;font-size:11.5px;font-weight:500;color:var(--sub);overflow:hidden;text-overflow:ellipsis}
+.al-b{height:8px;border-radius:4px;background:var(--track);overflow:hidden}
+.al-b i{display:block;height:100%;background:var(--s1);border-radius:4px}
+.al-v{text-align:right;min-width:62px}
+.al-v b{font-weight:730}
+.al-v small{display:block;font-size:11.5px;color:var(--sub)}
+.hd{border-top:1px solid var(--line)}
+.list .hd:first-child{border-top:0}
+.hd-b{display:block;width:100%;text-align:left;padding:12px 14px}
+.hd-b:active{background:var(--track)}
+.hd .h{display:flex;align-items:center;gap:6px}
+.hd .co{font-size:15.5px;font-weight:700}
+.hd .sp{flex:1}
+.hd .sec{font-size:11.5px;color:var(--sub);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40%}
+.hd-g{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.hd-g div{font-size:11.5px;color:var(--sub)}
+.hd-g b{display:block;font-size:15px;font-weight:720;color:var(--ink)}
+.hd-g b.up{color:var(--up)} .hd-g b.dn{color:var(--down)}
+.hd .l3{font-size:12.5px;color:var(--sub);margin-top:6px}
+.fm{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:12.5px;color:var(--sub)}
+.fm b{color:var(--ink);font-weight:680}
+.fm small{font-size:10.5px;margin-left:2px}
+.hd-x{padding:0 14px 12px;font-size:13.5px;line-height:1.6}
+.hd-x p{margin-top:4px}
+.mo{font-size:13px}
+.chart-box{background:var(--surface);border-radius:14px;padding:10px 8px 4px;margin-top:10px}
+.legend{display:flex;gap:14px;font-size:12.5px;color:var(--sub);padding:0 6px 4px}
+.legend span{display:flex;align-items:center;gap:5px}
+.sw{display:inline-block;width:14px;height:0;border-top:2px solid var(--s1)}
+.sw.s0{border-top:2px dashed var(--sub)}
+.chart{position:relative}
+.chart.bars{background:var(--surface);border-radius:14px;padding:8px 8px 2px;margin-top:8px}
+.chart svg{display:block;touch-action:pan-y}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .grid.zero{stroke:var(--sub);stroke-opacity:.5}
+.chart .ax{fill:var(--sub);font-size:10.5px;font-family:inherit}
+.chart .ln1{fill:none;stroke:var(--s1);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .ln0{fill:none;stroke:var(--sub);stroke-width:1.5;stroke-dasharray:4 3}
+.chart .area{fill:var(--s1-soft)}
+.chart .xh{stroke:var(--sub);stroke-width:1;stroke-dasharray:2 2}
+.chart .dt{fill:var(--s1);stroke:var(--surface);stroke-width:2}
+.chart .bu{fill:var(--up)} .chart .bd{fill:var(--down)}
+.tip{position:absolute;top:4px;background:var(--ink);color:var(--bg);font-size:12px;line-height:1.5;padding:6px 9px;border-radius:8px;pointer-events:none;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.tip .up{color:#ff8a90} .tip .dn{color:#8db4ff}
+@media (prefers-color-scheme: dark){.tip .up{color:#c4232d}.tip .dn{color:#1f5fcc}}
+.rt{display:grid;grid-template-columns:52px 1fr 1fr 1fr;gap:6px;padding:8px 14px;border-top:1px solid var(--line);font-size:13.5px;text-align:right}
+.rt span:first-child{text-align:left;color:var(--sub)}
+.rt-h{font-size:12px;color:var(--sub);border-top:0}
+.rt b{font-weight:700}
+.tog{display:block;background:var(--surface);border-radius:14px;padding:12px 14px;margin-top:10px;font-size:14px;font-weight:600}
+.tog input{margin-right:6px;accent-color:var(--ink);transform:scale(1.15)}
+.tog small{display:block;font-size:12px;color:var(--sub);font-weight:500;margin-top:3px;margin-left:24px}
+select.inp{appearance:auto}
 /* ---------- 하단 탭 ---------- */
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
   padding:6px 0 calc(6px + env(safe-area-inset-bottom));z-index:5}
@@ -255,7 +326,12 @@ nav .nb{position:absolute;top:0;left:calc(50% + 8px);font-size:10px;font-weight:
   </section>
 
   <!-- ===== 종목 관리 ===== -->
-  <section class="view" id="v-manage" aria-label="종목 관리">
+  <section class="view" id="v-manage" aria-label="내 자산과 종목 관리">
+    <div class="ctl" style="margin-top:6px"><div class="seg" role="group" aria-label="보기" id="mgSeg">
+      <button data-v="asset" aria-pressed="true">자산</button><button data-v="ret" aria-pressed="false">수익률</button><button data-v="rec" aria-pressed="false">기록</button><button data-v="list" aria-pressed="false">종목 목록</button>
+    </div></div>
+    <div id="mg-asset"></div><div id="mg-ret" hidden></div><div id="mg-rec" hidden></div>
+    <div id="mg-list" hidden>
     <h2 class="sec-title">보유 종목 <span class="mute" id="cntP" style="font-size:14px"></span></h2>
     <div class="list" id="listP"></div>
     <h2 class="sec-title">관심 종목 <span class="mute" id="cntW" style="font-size:14px"></span></h2>
@@ -301,6 +377,7 @@ nav .nb{position:absolute;top:0;left:calc(50% + 8px);font-size:10px;font-weight:
       <summary>수집 상태</summary>
       <div id="srcStat" style="margin-top:8px"></div>
     </details>
+  </div>
   </section>
 </div>
 
@@ -359,7 +436,7 @@ const isNew = it => !!NEWBASE && it.first_seen > NEWBASE;
 
 /* ---------- 상단 ---------- */
 function drawHead(){
-  $('#ttl').textContent = {manage:'종목 관리',watch:'관심 종목 뉴스',bb:'자사주 공시',adv:'투자자문 지분 공시'}[view]||'보유 종목 뉴스';
+  $('#ttl').textContent = {manage:'내 자산',watch:'관심 종목 뉴스',bb:'자사주 공시',adv:'투자자문 지분 공시'}[view]||'보유 종목 뉴스';
   if(!D){return;}
   const upd=(view==='bb'||view==='adv')&&X?X.updated:D.updated;
   const age=(Date.now()-new Date(upd))/36e5;
@@ -764,7 +841,7 @@ function show(v){
   $('#v-manage').classList.toggle('on',v==='manage');
   $('#slots').hidden=v==='manage';
   drawHead();
-  if(v==='manage'){ if(!WORK) loadList(); else drawManage(); drawStatus(); }
+  if(v==='manage'){ pfShow(); }
   else if(v==='bb') drawBB();
   else if(v==='adv') drawAdv();
   else drawFeed();
@@ -788,5 +865,6 @@ load();
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && D && (Date.now()-new Date(D.updated))>36e5) load(); });
 setInterval(()=>{ if(D && view!=='manage') drawHead(); },60000);
 </script>
+<script src="pf.js"></script>
 </body>
 </html>

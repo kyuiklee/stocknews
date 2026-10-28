@@ -224,7 +224,7 @@ def yf_fund(t):
         out = {"per": i.get("trailingPE"), "fper": i.get("forwardPE"), "pbr": i.get("priceToBook"),
                "div": round(dy * 100, 2) if isinstance(dy, (int, float)) else None,
                "roe": round(i["returnOnEquity"] * 100, 1) if isinstance(i.get("returnOnEquity"), (int, float)) else None,
-               "mcap": i.get("marketCap"), "sector": i.get("sector"), "product": i.get("industry"),
+               "mcap": i.get("marketCap"), "sector_en": i.get("sector"), "ind": i.get("industry"),
                "eps": i.get("trailingEps")}
         _st("us_fund", True)
         return {k: (round(v, 2) if isinstance(v, float) else v) for k, v in out.items() if v is not None}
@@ -273,8 +273,8 @@ def run(stocks, now):
     _save("px.json", px)
     # 지표 (하루 한 번이면 충분: 6시간 넘었을 때만 새로)
     mk_old = _load("mk.json", {"at": 0, "info": {}})
-    fresh = time.time() - mk_old.get("at", 0) < 5 * 3600
-    info = dict(mk_old.get("info", {}))
+    fresh = time.time() - mk_old.get("at", 0) < 5 * 3600 and mk_old.get("v") == 2
+    info = {k: {x: y for x, y in v.items() if x not in ("sector", "product")} for k, v in mk_old.get("info", {}).items()}
     desc = krx_desc() if any(s["market"] == "KR" for _, s in todo) else {}
     for key, s in todo:
         if fresh and key in info:
@@ -282,8 +282,8 @@ def run(stocks, now):
         if s["market"] == "KR":
             f = naver_fund(s["code"])
             d = desc.get(s["code"]) or {}
-            f.setdefault("sector", d.get("sector"))
-            f.setdefault("product", d.get("product"))
+            if d.get("product") and d["product"] != "nan":
+                f["ind"] = d["product"]          # KRX-DESC 의 Industry = 한국표준산업분류 업종
         else:
             f = yf_fund(s["code"])
         f = {k: v for k, v in f.items() if v is not None}
@@ -291,7 +291,7 @@ def run(stocks, now):
             info[key] = f
         time.sleep(0.2)
     if not fresh:
-        _save("mk.json", {"at": time.time(), "info": info})
+        _save("mk.json", {"at": time.time(), "info": info, "v": 2})
     keys = {k for k, _ in todo}
     out_px = {"updated": now.isoformat(), "fx": px.get("FX:USDKRW"),
               "px": {k: {**v, "cur": "USD" if k.startswith("US:") else "KRW"} for k, v in px.items() if k in keys}}
