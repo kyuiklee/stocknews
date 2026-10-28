@@ -253,6 +253,25 @@ select.inp{appearance:auto}
 .sr-i small{color:var(--sub);white-space:nowrap}
 .sr-i:active{background:var(--track)}
 .tf [data-f=side]{margin-top:10px}
+/* 비중 원형 그래프 — 색은 고정 순서(검증된 범주 팔레트), 이름·%는 범례에 항상 표시 */
+:root{--p1:#2a78d6;--p2:#eb6834;--p3:#1baf7a;--p4:#eda100;--p5:#e87ba4;--p6:#008300;--p7:#6250d6;--po:#b4bcc6}
+@media (prefers-color-scheme: dark){:root{--p1:#3987e5;--p2:#d95926;--p3:#199e70;--p4:#c98500;--p5:#d55181;--p6:#008300;--p7:#9085e9;--po:#566273}}
+.pie-box{background:var(--surface);border-radius:14px;padding:14px;margin-top:8px;display:grid;grid-template-columns:192px 1fr;gap:12px;align-items:center}
+@media (max-width:400px){.pie-box{grid-template-columns:1fr;justify-items:center}.pie-box .lg{display:grid;grid-template-columns:1fr 1fr;column-gap:4px}}
+.pie svg{display:block}
+.pc{stroke:var(--surface);stroke-width:2;transition:opacity .15s;cursor:pointer}
+.pc.dim{opacity:.25}
+.pt1{fill:var(--sub);font-size:12px;font-family:inherit}
+.pt2{fill:var(--ink);font-size:17px;font-weight:750;font-family:inherit}
+.p1{fill:var(--p1);background:var(--p1)}.p2{fill:var(--p2);background:var(--p2)}.p3{fill:var(--p3);background:var(--p3)}.p4{fill:var(--p4);background:var(--p4)}
+.p5{fill:var(--p5);background:var(--p5)}.p6{fill:var(--p6);background:var(--p6)}.p7{fill:var(--p7);background:var(--p7)}.po{fill:var(--po);background:var(--po)}
+.lg{display:flex;flex-direction:column;gap:2px;width:100%;min-width:0}
+.lg-i{display:grid;grid-template-columns:10px minmax(0,1fr) auto;column-gap:8px;align-items:center;text-align:left;padding:5px 6px;border-radius:8px;font-size:13.5px}
+.lg-i i{width:10px;height:10px;border-radius:3px;grid-row:span 2}
+.lg-i .lg-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:620}
+.lg-i b{font-weight:730}
+.lg-i small{grid-column:2/4;font-size:11.5px;color:var(--sub);margin-top:-2px}
+.lg-i.on{background:var(--track)}
 /* ---------- 하단 탭 ---------- */
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
   padding:6px 0 calc(6px + env(safe-area-inset-bottom));z-index:5}

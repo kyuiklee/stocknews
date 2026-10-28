@@ -144,13 +144,13 @@ function drawAsset(el,R,p){
   if(N.C>0.5) items.push({k:'cash',name:'예수금',val:N.C,sec:'현금성'});
   R.others.forEach(o=>items.push({k:'o:'+o.id,name:o.name,val:+o.last.val,sec:o.type==='펀드'||o.type==='연금'?o.type:'현금성'}));
   const tot=items.reduce((a,b)=>a+b.val,0)||1;
-  let rows;
-  if(pfAlloc==='sector'){const g={};items.forEach(i=>{g[i.sec]=(g[i.sec]||0)+i.val;});rows=Object.entries(g).map(([n,v])=>({name:n,val:v}));}
-  else rows=items.map(i=>({name:i.name,val:i.val,sub:i.sec}));
-  rows.sort((a,b)=>b.val-a.val);
-  const mx=rows.length?rows[0].val/tot:1;
-  h+=`<h2 class="sec-title">비중</h2><div class="seg" role="group" aria-label="비중 기준" id="pfAllocSeg"><button data-v="stock" aria-pressed="${pfAlloc==='stock'}">종목별</button><button data-v="sector" aria-pressed="${pfAlloc==='sector'}">산업군별</button></div>
-    <div class="list" style="margin-top:8px">${rows.map(r=>{const w=r.val/tot;return `<div class="al"><div class="al-n">${esc(r.name)}${r.sub?`<small>${esc(r.sub)}</small>`:''}</div><div class="al-b"><i style="width:${(w/mx*100).toFixed(1)}%"></i></div><div class="al-v"><b>${(w*100).toFixed(1)}%</b><small>${KRWs(r.val)}</small></div></div>`;}).join('')}</div>`;
+  const mktOf=i=>i.k==='cash'||i.k.startsWith('o:')?(i.sec==='현금성'?'현금·예금':'펀드·연금'):(isUS(i.k)?'해외 (미국)':'국내');
+  const g={};
+  items.forEach(i=>{const n=pfAlloc==='sector'?i.sec:pfAlloc==='market'?mktOf(i):i.name;g[n]=(g[n]||0)+i.val;});
+  let rows=Object.entries(g).map(([name,val])=>({name,val})).sort((a,b)=>b.val-a.val);
+  if(rows.length>8){const head=rows.slice(0,7),rest=rows.slice(7);rows=[...head,{name:`기타 ${rest.length}개`,val:rest.reduce((a,b)=>a+b.val,0),other:true}];}
+  h+=`<h2 class="sec-title">비중</h2><div class="seg" role="group" aria-label="비중 기준" id="pfAllocSeg">${[['stock','종목별'],['sector','산업군별'],['market','국내·해외']].map(([v,l])=>`<button data-v="${v}" aria-pressed="${pfAlloc===v}">${l}</button>`).join('')}</div>
+    <div class="pie-box">${donut(rows,tot)}</div>`;
   // 보유 종목
   const H=[...R.hold].sort((a,b)=>(b.val||0)-(a.val||0));
   h+=`<div class="sec-row"><h2 class="sec-title">보유 종목 <span class="mute" style="font-size:14px">${H.length}개</span></h2><button class="btn sm${pfAct.__new?'':' pri'}" id="pfAddBtn">${pfAct.__new?'닫기':'+ 종목 추가'}</button></div>
@@ -178,6 +178,7 @@ function drawAsset(el,R,p){
   h+=`<p class="note">시세는 하루 4번 받습니다(국내 장중에는 수집 시점 가격). 미국 종목은 그날 원/달러 환율로 바꿔 더합니다. PER·PBR·배당·ROE는 네이버 증권(국내)·야후 파이낸스(미국) 기준이고, 해자는 Claude가 ${esc(MO?.asof||'')} 기준으로 정리한 정성 의견입니다. 투자 권유가 아닙니다.</p>`;
   el.innerHTML=h;
   $$('#pfAllocSeg button').forEach(b=>b.onclick=()=>{pfAlloc=b.dataset.v;store.set('pfAlloc',pfAlloc);pfDraw();});
+  bindDonut(el);
   $$('[data-hk]').forEach(b=>b.onclick=()=>{pfOpen[b.dataset.hk]=!pfOpen[b.dataset.hk];pfDraw();});
   $('#pfAddBtn').onclick=()=>{pfAct.__new=!pfAct.__new;pfDraw();};
   if($('#pfNewTF')) tradeForm($('#pfNewTF'),{mode:'set',onDone:()=>{pfAct.__new=false;pfDraw();}});
@@ -195,6 +196,38 @@ function pfMissing(have){
 }
 function bindMissing(el){
   el.querySelectorAll('[data-miss]').forEach(b=>b.onclick=()=>{recKind='B';pfSeg='rec';store.set('pfSeg',pfSeg);pfDraw();const sel=$('#rStock');if(sel){sel.value=b.dataset.miss;sel.dispatchEvent(new Event('change'));}$('#rQty')?.focus();});
+}
+
+
+/* ---------- 비중 원형 그래프 ---------- */
+const PIE_N=8;   // 색 7개(고정 순서) + 기타(회색)
+function donut(rows,tot){
+  const R=78, r=50, C=96, gap=rows.length>1?0.012:0;
+  let a0=-Math.PI/2, paths='';
+  rows.forEach((x,i)=>{
+    const f=x.val/tot, a1=a0+f*2*Math.PI, s0=a0+gap/2, s1=Math.max(s0+0.002,a1-gap/2), big=(s1-s0)>Math.PI?1:0;
+    const pt=(rad,a)=>`${(C+rad*Math.cos(a)).toFixed(2)},${(C+rad*Math.sin(a)).toFixed(2)}`;
+    const d=f>=0.9999?`M${C},${C-R}A${R},${R} 0 1 1 ${C-0.01},${C-R}L${C-0.01},${C-r}A${r},${r} 0 1 0 ${C},${C-r}Z`
+      :`M${pt(R,s0)}A${R},${R} 0 ${big} 1 ${pt(R,s1)}L${pt(r,s1)}A${r},${r} 0 ${big} 0 ${pt(r,s0)}Z`;
+    paths+=`<path d="${d}" class="pc ${x.other?'po':'p'+(i%7+1)}" data-pi="${i}"><title>${esc(x.name)} ${(f*100).toFixed(1)}%</title></path>`;
+    a0=a1;
+  });
+  return `<div class="pie"><svg viewBox="0 0 192 192" width="192" height="192" role="img" aria-label="비중 원형 그래프">${paths}
+      <text x="${C}" y="${C-4}" text-anchor="middle" class="pt1" data-pt1>합계</text><text x="${C}" y="${C+16}" text-anchor="middle" class="pt2" data-pt2>${KRWs(tot)}</text></svg></div>
+    <div class="lg">${rows.map((x,i)=>`<button class="lg-i" data-pi="${i}"><i class="${x.other?'po':'p'+(i%7+1)}"></i><span class="lg-n">${esc(x.name)}</span><b>${(x.val/tot*100).toFixed(1)}%</b><small>${KRWs(x.val)}</small></button>`).join('')}</div>`;
+}
+function bindDonut(el){
+  const box=el.querySelector('.pie-box'); if(!box) return;
+  const t1=box.querySelector('[data-pt1]'), t2=box.querySelector('[data-pt2]'), base=[t1.textContent,t2.textContent];
+  const items=[...box.querySelectorAll('.lg-i')];
+  let sel=null;
+  const set=i=>{sel=i;box.querySelectorAll('.pc').forEach(p=>p.classList.toggle('dim',i!=null&&p.dataset.pi!=i));
+    items.forEach(b=>b.classList.toggle('on',b.dataset.pi==i));
+    if(i==null){t1.textContent=base[0];t2.textContent=base[1];return;}
+    const b=items[+i]; t1.textContent=b.querySelector('.lg-n').textContent.slice(0,9); t2.textContent=b.querySelector('b').textContent;};
+  box.querySelectorAll('[data-pi]').forEach(e=>e.addEventListener('click',()=>set(sel==e.dataset.pi?null:e.dataset.pi)));
+  box.querySelectorAll('.pc').forEach(e=>{e.addEventListener('pointerenter',()=>set(e.dataset.pi));});
+  box.querySelector('svg').addEventListener('pointerleave',()=>set(null));
 }
 
 /* ---------- 수익률 ---------- */
