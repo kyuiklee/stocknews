@@ -328,6 +328,12 @@ def run(stocks, now, sec_ua="StockNews personal app"):
     fx = yf_history(["KRW=X"], "3mo" if len(fx_old.get("t", [])) > 200 else "6y").get("KRW=X")
     if fx:
         px["FX:USDKRW"] = merge_series(fx_old, fx)
+    for idx in ("KOSPI", "KOSDAQ"):                 # 벤치마크 지수 (네이버 차트)
+        have = px.get(f"IDX:{idx}") or {}
+        new = naver_daily(idx, 40 if len(have.get("t", [])) > 200 else KEEP)
+        if new:
+            px[f"IDX:{idx}"] = merge_series(have, new)
+            _st("index", True)
     _save("px.json", px)
     # 지표 (하루 한 번이면 충분: 6시간 넘었을 때만 새로)
     mk_old = _load("mk.json", {"at": 0, "info": {}})
@@ -352,6 +358,7 @@ def run(stocks, now, sec_ua="StockNews personal app"):
         _save("mk.json", {"at": time.time(), "info": info, "v": 2})
     keys = {k for k, _ in todo}
     out_px = {"updated": now.isoformat(), "fx": px.get("FX:USDKRW"),
+              "idx": {k[4:]: px[k] for k in ("IDX:KOSPI", "IDX:KOSDAQ") if k in px},
               "px": {k: {**v, "cur": "USD" if k.startswith("US:") else "KRW"} for k, v in px.items() if k in keys}}
     names = {k: s.get("name") for k, s in todo}
     for k, v in out_px["px"].items():
