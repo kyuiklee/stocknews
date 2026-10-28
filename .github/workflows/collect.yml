@@ -56,6 +56,13 @@ jobs:
           path: cache
           key: news-${{ github.run_id }}
 
+      - name: 앱 버전 표시 (폰이 예전 파일을 쓰지 않도록)
+        run: |
+          V=${GITHUB_SHA::7}
+          sed -i "s/pf.js?v=[A-Za-z0-9]*/pf.js?v=$V/; s/const APPV='[A-Za-z0-9]*'/const APPV='$V'/" site/index.html
+          echo "{\"v\":\"$V\"}" > site/version.json
+          grep -o "pf.js?v=[A-Za-z0-9]*" site/index.html
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

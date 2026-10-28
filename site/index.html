@@ -400,6 +400,9 @@ nav .nb{position:absolute;top:0;left:calc(50% + 8px);font-size:10px;font-weight:
 </div></nav>
 
 <script>
+const APPV='dev';   // 배포 때 커밋 번호로 바뀜
+(function(){try{fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
+  if(j&&j.v&&APPV!=='dev'&&j.v!==APPV&&sessionStorage.getItem('sn_rl')!==j.v){sessionStorage.setItem('sn_rl',j.v);location.reload();}}).catch(()=>{});}catch(e){}})();
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const store = {get(k,d){try{const v=localStorage.getItem('sn_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
                set(k,v){try{localStorage.setItem('sn_'+k,JSON.stringify(v))}catch(e){}},
@@ -872,6 +875,6 @@ load();
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && D && (Date.now()-new Date(D.updated))>36e5) load(); });
 setInterval(()=>{ if(D && view!=='manage') drawHead(); },60000);
 </script>
-<script src="pf.js"></script>
+<script src="pf.js?v=dev"></script>
 </body>
 </html>

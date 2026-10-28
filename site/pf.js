@@ -20,8 +20,10 @@ function pfGet(){const p=store.get(PFKEY,null)||{};return {v:1,auto:p.auto!==fal
 function pfSet(p){store.set(PFKEY,p);}
 
 /* ---------- 공개 데이터 받기 ---------- */
-function pfLoad(){
-  if(pfLoading) return pfLoading;
+let pfLoadedAt=0;
+function pfLoad(force){
+  if(pfLoading&&!force&&Date.now()-pfLoadedAt<5*6e4) return pfLoading;      // 5분 지나면 새로 받음
+  pfLoadedAt=Date.now();
   const get=n=>fetch(`${n}?t=${Date.now()}`,{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null);
   pfLoading=Promise.all([get('data/prices.json'),get('data/market.json'),get('moat.json')]).then(([a,b,c])=>{PX=a;MK=b;MO=c;});
   return pfLoading;
@@ -59,7 +61,7 @@ function pfCalc(p){
   const start=starts[0], end=today();
   const days=[]; {const d=new Date(start+'T12:00:00+09:00'), e=new Date(end+'T12:00:00+09:00');
     for(;d<=e;d.setDate(d.getDate()+1)){const w=d.getDay(); if(w&&w<6) days.push(kstParts(d).date);} if(!days.length||days[days.length-1]!==end) days.push(end);}
-  const qty={}, cost={}, costN={}, realized={}, warn=[];
+  const qty={}, cost={}, costN={}, realized={}, warn=[], lastTradePx={};
   let cash=0, prin=0, autoIn=0, ei=0, inc=0, fees=0;
   const out=[]; let prevV=null;
   const oth=p.others.map(o=>({o,s:[...o.snaps].sort((a,b)=>a.d<b.d?-1:1)}));
@@ -72,6 +74,7 @@ function pfCalc(p){
         if(e.f.kind==='in'){cash+=a;prin+=a;cf+=a;} else if(e.f.kind==='out'){cash-=a;prin-=a;cf-=a;} else {cash+=a;inc+=a;}
         continue;}
       const t=e.t, us=isUS(t.k), fx=us?(+t.fx||fxAt(d2i(t.d))):1, q=+t.q, px=+t.p, fee=+t.fee||0, amt=q*px*fx;
+      lastTradePx[t.k]=px;                         // 시세가 아직 없으면 이 가격으로 평가
       fees+=fee;
       if(t.side==='B'){
         cash-=amt+fee;
@@ -90,7 +93,7 @@ function pfCalc(p){
     }
     let sv=0;
     for(const k in qty){ if(Math.abs(qty[k])<1e-9) continue;
-      const c=lastLE(series(k),di); if(c==null) continue;
+      let c=lastLE(series(k),di); if(c==null) c=lastTradePx[k]; if(c==null) continue;
       sv+=qty[k]*c*(isUS(k)?fxAt(di):1); }
     let ov=0, op=0;
     oth.forEach(x=>{let v=null,pp=null; for(const s of x.s){ if(s.d<=day){v=+s.val;pp=+s.prin;} else break;} if(v!=null){ov+=v;op+=pp||0;}});
@@ -103,8 +106,9 @@ function pfCalc(p){
   // 현재 보유 내역
   const di=d2i(end), hold=[];
   for(const k in qty){ if(qty[k]<=1e-9) continue;
-    const c=lastLE(series(k),di), fx=isUS(k)?fxAt(di):1;
-    hold.push({k,q:qty[k],cost:cost[k],avg:costN[k]/qty[k],price:c,val:c!=null?qty[k]*c*fx:null,real:realized[k]||0});
+    let c=lastLE(series(k),di), est=false; if(c==null&&lastTradePx[k]!=null){c=lastTradePx[k];est=true;}
+    const fx=isUS(k)?fxAt(di):1;
+    hold.push({k,q:qty[k],cost:cost[k],avg:costN[k]/qty[k],price:c,est,val:c!=null?qty[k]*c*fx:null,real:realized[k]||0});
   }
   if(cash<-0.5) warn.push(`예수금이 ${KRW(cash)}입니다. 입금 기록을 넣거나 '모자란 매수금은 입금으로 보기'를 켜 주세요`);
   const nowRow=out[out.length-1];
@@ -132,6 +136,8 @@ function drawAsset(el,R,p){
     <div class="l2 ${sgnCls(pl)}">원금 대비 <b>${pl>=0?'+':''}${KRW(pl)}</b> (${PCT(ret)})</div>
     <div class="sum3"><div>원금<b>${KRWs(N.P)}</b></div><div>오늘<b class="${sgnCls(dayPl)}">${dayPl>=0?'+':''}${KRWs(dayPl)}</b><small class="${sgnCls(dayR)}">${PCT(dayR)}</small></div><div>주식·ETF<b>${KRWs(N.S)}</b></div></div></div>`;
   if(R.warn.length) h+=`<div class="warn">${R.warn.slice(0,3).map(esc).join('<br>')}</div>`;
+  const wait=R.hold.filter(x=>x.est);
+  if(wait.length) h+=`<div class="warn">${wait.map(x=>esc(nameOf(x.k))).join(', ')}: 아직 시세를 받지 않아 마지막 매수가로 계산했습니다. ${token()?'다음 수집(몇 분) 뒤 자동으로 바뀝니다.':'<b>관심 목록</b> 아래 GitHub 연결을 하면 시세 추적에 자동으로 추가됩니다.'}</div>`;
   h+=syncBanner(R);
   // 비중
   const items=R.hold.filter(x=>x.val!=null).map(x=>({k:x.k,name:nameOf(x.k),val:x.val,sec:pfSectorOf(x.k)}));
@@ -155,7 +161,7 @@ function drawAsset(el,R,p){
     const avg=us?'$'+x.avg.toFixed(2):Math.round(x.avg).toLocaleString('ko-KR')+'원';
     const open=pfOpen[x.k];
     return `<div class="hd"><button class="hd-b" data-hk="${esc(x.k)}" aria-expanded="${!!open}">
-      <div class="h"><span class="co">${esc(nameOf(x.k))}</span><span class="mk">${us?'미국':'국내'}</span><span class="sec">${esc(pfSectorOf(x.k))}</span><span class="sp"></span>${moatChip(x.k)}</div>
+      <div class="h"><span class="co">${esc(nameOf(x.k))}</span><span class="mk">${us?'미국':'국내'}</span>${x.est?'<span class="k trust">시세 대기</span>':''}<span class="sec">${esc(pfSectorOf(x.k))}</span><span class="sp"></span>${moatChip(x.k)}</div>
       <div class="hd-g"><div>평가액<b>${KRWs(x.val)}</b></div><div>비중<b>${x.val!=null?(x.val/tot*100).toFixed(1)+'%':'-'}</b></div><div>수익률<b class="${sgnCls(gr)}">${PCT(gr,1)}</b></div></div>
       <div class="l3">${(+x.q).toLocaleString('ko-KR')}주 · 평단 ${avg} · 현재 ${pxs}${gain!=null?` · <span class="${sgnCls(gain)}">${gain>=0?'+':''}${KRWs(gain)}</span>`:''}</div>
       <div class="fm"><span>PER <b>${fv(info.per,'',1)}</b></span><span>PBR <b>${fv(info.pbr,'',2)}</b></span><span>배당 <b>${fv(info.div,'%',2)}</b></span><span>ROE <b>${fv(info.roe,'%',1)}</b>${info.roe_est?'<small>추정</small>':''}</span></div></button>
@@ -459,6 +465,7 @@ async function addTicker(k,name,group,m){
       WORK=null;  // 목록 화면 다시 읽기
     }
     m.innerHTML+=`<br>${esc(name)}을(를) ${group==='prices'?'시세 추적':'보유 종목'}에 추가했습니다. 2~3분 뒤 시세가 반영됩니다.`;
+    [180,300,480].forEach(sec=>setTimeout(()=>pfLoad(true).then(()=>{if(view==='manage')pfDraw();}),sec*1000));
   }catch(e){m.innerHTML+=`<br>시세 추적 추가 실패(${esc(e.message||e)}) — 목록 탭에서 직접 추가해 주세요.`;}
 }
 
@@ -535,7 +542,8 @@ async function pfDraw(){
   $('#ttl').textContent=pfSeg==='list'?'종목 관리':'내 자산';
   if(pfSeg==='list'){ if(!WORK) loadList(); else drawManage(); drawStatus(); return; }
   const el=$('#mg-'+pfSeg);
-  if(!PX&&!MK){el.innerHTML='<div class="loading">불러오는 중…</div>'; await pfLoad();}
+  if(!PX&&!MK) el.innerHTML='<div class="loading">불러오는 중…</div>';
+  await pfLoad();
   const p=pfGet(); let R=null;
   try{R=pfCalc(p);}catch(e){console.error(e);el.innerHTML=`<div class="warn">계산 중 오류: ${esc(e.message)}</div>`;return;}
   if(!PX) el.insertAdjacentHTML('afterbegin','<div class="warn">시세 파일을 아직 받지 못했습니다. 다음 수집 뒤에 다시 열어 주세요.</div>');
