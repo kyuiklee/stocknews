@@ -127,12 +127,12 @@ function fv(v,suf,d=1){return v==null||!isFinite(v)?'-':(+v).toFixed(d)+suf;}
 
 /* ---------- 자산 ---------- */
 function drawAsset(el,R,p){
-  if(!R||!R.now){el.innerHTML=`<div class="empty">아직 기록이 없습니다. 가진 종목의 수량과 평단가를 넣어 시작하세요.<br><span class="mute" style="font-size:12.5px">과거 매수일까지 넣고 싶으면 <b>기록</b>에서 날짜별로 넣으면 됩니다.</span></div>
+  if(!R||!R.now){el.innerHTML=`${pxBar()}<div class="empty">아직 기록이 없습니다. 가진 종목의 수량과 평단가를 넣어 시작하세요.<br><span class="mute" style="font-size:12.5px">과거 매수일까지 넣고 싶으면 <b>기록</b>에서 날짜별로 넣으면 됩니다.</span></div>
     <h2 class="sec-title">보유 종목 추가</h2><div class="form" id="pfNewTF"></div>`;
-    tradeForm($('#pfNewTF'),{mode:'set',onDone:pfDraw});return;}
+    tradeForm($('#pfNewTF'),{mode:'set',onDone:pfDraw}); $('#pxNow')&&($('#pxNow').onclick=pxNow); return;}
   const N=R.now, prev=R.rows.length>1?R.rows[R.rows.length-2]:null, pl=N.V-N.P, ret=N.P>0?pl/N.P:null;
   const dayPl=prev?N.pl:0, dayR=N.r;
-  let h=`<div class="hero2"><div class="lbl">총 평가액</div><div class="big2">${KRW(N.V)}</div>
+  let h=`${pxBar()}<div class="hero2"><div class="lbl">총 평가액</div><div class="big2">${KRW(N.V)}</div>
     <div class="l2 ${sgnCls(pl)}">원금 대비 <b>${pl>=0?'+':''}${KRW(pl)}</b> (${PCT(ret)})</div>
     <div class="sum3"><div>원금<b>${KRWs(N.P)}</b></div><div>오늘${prev&&prev.V>0?`<b class="${sgnCls(dayPl)}">${dayPl>=0?'+':''}${KRWs(dayPl)}</b><small class="${sgnCls(dayR)}">${PCT(dayR)}</small>`:'<b>-</b><small class="mute">오늘 첫 기록</small>'}</div><div>주식·ETF<b>${KRWs(N.S)}</b></div></div></div>`;
   if(R.warn.length) h+=`<div class="warn">${R.warn.slice(0,3).map(esc).join('<br>')}</div>`;
@@ -182,6 +182,7 @@ function drawAsset(el,R,p){
   h+=`<p class="note">시세는 하루 4번 받습니다(국내 장중에는 수집 시점 가격). 미국 종목은 그날 원/달러 환율로 바꿔 더합니다. PER·PBR·배당·ROE는 네이버 증권(국내)·야후 파이낸스(미국) 기준이고, 해자는 Claude가 ${esc(MO?.asof||'')} 기준으로 정리한 정성 의견입니다. 투자 권유가 아닙니다.</p>`;
   el.innerHTML=h;
   $$('#pfAllocSeg button').forEach(b=>b.onclick=()=>{pfAlloc=b.dataset.v;store.set('pfAlloc',pfAlloc);pfDraw();});
+  $('#pxNow')&&($('#pxNow').onclick=pxNow);
   bindDonut(el);
   $$('[data-hk]').forEach(b=>b.onclick=()=>{pfOpen[b.dataset.hk]=!pfOpen[b.dataset.hk];pfDraw();});
   $('#pfAddBtn').onclick=()=>{pfAct.__new=!pfAct.__new;pfDraw();};
@@ -623,6 +624,41 @@ function bindSync(el){
   const go=mv=>{store.set('pfSync',true);store.set('pfSyncMove',mv);pfSync(mv);};
   el.querySelector('#syW')&&(el.querySelector('#syW').onclick=()=>go(true));
   el.querySelector('#syD')&&(el.querySelector('#syD').onclick=()=>go(false));
+}
+
+
+/* ---------- 지금 시세 받기: GitHub의 '시세만 갱신' 작업을 실행하고, 새 prices.json 이 올라오면 반영 ---------- */
+let pxReq=null;   // {at, msg, err}
+function pxTime(){if(!PX?.updated)return '-';const k=kstParts(new Date(PX.updated));return `${k.mo}/${k.d} ${String(k.h).padStart(2,'0')}:${String(k.m).padStart(2,'0')}`;}
+function pxBar(){
+  const busy=pxReq&&!pxReq.done&&!pxReq.err;
+  const sec=busy?Math.round((Date.now()-pxReq.at)/1000):0;
+  return `<div class="pxbar"><span>시세 기준 <b>${pxTime()}</b>${busy?` · 받는 중 ${sec}초`:''}</span>
+    <button class="btn sm${busy?'':' pri'}" id="pxNow" ${busy?'disabled':''}>${busy?'받는 중…':'지금 시세 받기'}</button></div>
+    ${pxReq?.err?`<div class="warn">${pxReq.err}</div>`:''}${pxReq?.done&&Date.now()-pxReq.done<60000?'<div class="msg ok" style="margin:6px 2px">새 시세를 반영했습니다.</div>':''}`;
+}
+async function pxNow(){
+  if(!token()){pxReq={at:Date.now(),err:'시세를 바로 받으려면 <b>관심 목록</b> 아래 GitHub 연결이 필요합니다.'};pfDraw();return;}
+  const before=PX?.updated||'';
+  pxReq={at:Date.now()}; pfDraw();
+  try{
+    const r=await api('actions/workflows/prices.yml/dispatches',{method:'POST',body:JSON.stringify({ref:'main'})});
+    if(r.status===403||r.status===404) throw new Error('perm');
+    if(r.status===401) throw new Error('GitHub 토큰이 만료됐거나 잘못됐습니다. 관심 목록 아래 GitHub 연결에서 새 토큰을 넣어 주세요.');
+    if(!r.ok) throw new Error('실행 요청 실패 (HTTP '+r.status+')');
+  }catch(e){
+    pxReq.err=e.message==='perm'?`토큰에 <b>Actions</b> 권한이 없어 시세 수집을 실행하지 못했습니다.<br>GitHub → Settings → Developer settings → Fine-grained tokens → 지금 쓰는 토큰 → <b>Edit</b> → Repository permissions에서 <b>Actions: Read and write</b>를 추가하고 저장해 주세요 (토큰 값은 그대로라 앱에 다시 넣을 필요 없음).`:esc(e.message);
+    pfDraw(); return;
+  }
+  const tick=setInterval(()=>{if(view==='manage'&&pfSeg==='asset'){const el=$('#pxNow');if(el)el.closest('.pxbar').querySelector('span').innerHTML=`시세 기준 <b>${pxTime()}</b> · 받는 중 ${Math.round((Date.now()-pxReq.at)/1000)}초`;}},1000);
+  for(let i=0;i<30;i++){                        // 최대 약 4분 기다림
+    await new Promise(r=>setTimeout(r,8000));
+    await pfLoad(true);
+    if(PX?.updated&&PX.updated>before&&new Date(PX.updated).getTime()>pxReq.at-60000){pxReq.done=Date.now();break;}
+  }
+  clearInterval(tick);
+  if(!pxReq.done) pxReq.err='4분 안에 새 시세가 올라오지 않았습니다. GitHub가 붐비면 늦을 수 있으니 잠시 뒤 다시 열어 보세요.';
+  if(view==='manage') pfDraw();
 }
 
 /* ---------- 화면 ---------- */

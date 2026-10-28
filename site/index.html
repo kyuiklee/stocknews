@@ -281,6 +281,8 @@ select.inp{appearance:auto}
 .sw.b1{border-top:2px solid var(--b1)} .sw.b2{border-top:2px solid var(--b2)}
 .rt.rt5{grid-template-columns:44px 1.1fr 1fr 1fr 1fr;font-size:13px;padding:8px 12px}
 .sum small{display:block}
+.pxbar{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;color:var(--sub);margin:0 2px 8px}
+.pxbar b{color:var(--ink);font-weight:700}
 /* ---------- 하단 탭 ---------- */
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
   padding:6px 0 calc(6px + env(safe-area-inset-bottom));z-index:5}
@@ -403,7 +405,7 @@ nav .nb{position:absolute;top:0;left:calc(50% + 8px);font-size:10px;font-weight:
       <ol>
         <li>GitHub → Settings → Developer settings → Personal access tokens → <b>Fine-grained tokens</b> → Generate new token</li>
         <li>Repository access: <b>Only select repositories</b> → <span id="repoName">이 저장소</span></li>
-        <li>Permissions → Repository permissions → <b>Contents: Read and write</b></li>
+        <li>Permissions → Repository permissions → <b>Contents: Read and write</b>, <b>Actions: Read and write</b> (지금 시세 받기 버튼용)</li>
         <li>만료일은 원하는 대로 (예: 1년) 정하고 생성된 토큰을 아래에 붙여넣기</li>
       </ol>
       <input class="inp" id="tok" type="password" autocomplete="off" placeholder="github_pat_…">
